@@ -1,0 +1,22 @@
+{
+  "schema_version": "1",
+  "record_type": "review_plan",
+  "review_plan_id": "00000000-0000-4000-8000-000000000020",
+  "target_date": "2026-08-25",
+  "timezone": "Asia/Tokyo",
+  "generated_at": "2026-08-24T15:00:00Z",
+  "algorithm_id": "review-engine",
+  "algorithm_version": "1.0.0",
+  "item_count": 1,
+  "provenance": {
+    "producer": "review-engine",
+    "producer_version": "1.0.0",
+    "source_system": "local_review",
+    "recorded_at": "2026-08-24T15:00:00Z"
+  },
+  "quality": {
+    "acquisition_method": "derived",
+    "temporal_precision": "date_only",
+    "state_precision": "exact"
+  }
+}

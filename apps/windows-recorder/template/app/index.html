@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>QB記録 Windows</title><link rel="stylesheet" href="/style.css"><script src="/client.js" type="module"></script></head>
+<body><main>
+<header><div><p class="eyebrow">WINDOWS + CHROME</p><h1>QB記録</h1><p>このPCで解いた記録を、いつものNotionへ。</p></div><span class="badge">Windows 試用版</span></header>
+<div id="notice" class="notice" role="status" aria-live="polite">接続を確認しています…</div>
+<section id="setup-section"><h2>先に既存Notionへ接続</h2>
+<p>MacやiPhoneで使用している保存先を指定してください。復習候補の計算と問題セット作成は、引き続き復習計算用Macで行います。</p>
+<label>保存先ファイルから入力（任意）<input id="target-file" type="file" accept=".json,application/json"><span class="hint">用意された connection-targets.json を選ぶと、下の3項目を入力できます。</span></label>
+<div class="fields"><label>解答ログのデータソースID<input id="attemptsId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000"></label>
+<label>問題マスターのデータソースID<input id="questionsId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000"></label>
+<label>復習計画の親ページID<input id="reviewParentId" type="text" autocomplete="off" spellcheck="false" placeholder="00000000-0000-0000-0000-000000000000"></label></div>
+<label>Notion接続キー<input id="token" type="password" autocomplete="off" spellcheck="false"></label>
+<p class="muted">接続キーはこのPCに保存します。設定画面には再表示しません。接続先の確認が終わると、記録サービスを開始します。</p>
+<button id="setup" type="button">既存の保存先を確認して接続</button>
+</section>
+<section><div class="section-head"><h2>このPCの記録</h2><button id="refresh" type="button" class="secondary">表示を更新</button></div>
+<p id="collector">記録サービス：確認中</p>
+<div class="stats"><div><strong id="total">—</strong><span>PCに保存</span></div><div><strong id="confirmed">—</strong><span>Notion確認済み</span></div><div><strong id="pending">—</strong><span>送信待ち</span></div><div><strong id="blocked">—</strong><span>保留・要確認</span></div></div>
+<p id="localOnly" class="important" hidden></p>
+<p class="muted">このPCで記録した解答の件数と直近20件です。他の端末の解答は一覧に含みません。</p>
+<div class="table-wrap"><table><thead><tr><th>問題</th><th>解答時刻</th><th>自分の解答</th><th>判定</th><th>学習区分</th><th>Notion</th></tr></thead><tbody id="records"></tbody></table></div>
+</section>
+<section id="connection-section" hidden><h2>接続中の保存先</h2><p>既存の学習履歴へ、新しい解答を追加します。</p><dl class="destinations"><dt>解答ログ</dt><dd id="connected-attempts"></dd><dt>問題マスター</dt><dd id="connected-questions"></dd><dt>復習計画の親ページ</dt><dd id="connected-review"></dd></dl></section>
+<footer><p>学習区分はChrome拡張で「通常学習」「復習課題」を選べます。切替後の解答から適用します。</p><p>記録中は起動用ウィンドウを開いたままにしてください。導入手順と動作確認の範囲は、同梱の説明書をご覧ください。</p></footer>
+</main></body></html>

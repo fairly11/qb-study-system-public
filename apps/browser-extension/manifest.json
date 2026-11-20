@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "qb-study-system event capture",
+  "version": "0.1.2",
+  "description": "Read-only capture of supported QB quiz results with automatic study-purpose classification.",
+  "minimum_chrome_version": "127",
+  "incognito": "not_allowed",
+  "permissions": [
+    "alarms",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://qb.medilink-study.com:443/*"
+      ],
+      "js": [
+        "content-script.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false,
+      "match_about_blank": false,
+      "match_origin_as_fallback": false,
+      "world": "ISOLATED"
+    }
+  ],
+  "action": {
+    "default_title": "QB capture status",
+    "default_popup": "popup.html"
+  }
+}

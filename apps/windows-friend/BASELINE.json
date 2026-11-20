@@ -1,0 +1,39 @@
+{
+  "source_archive": "QBStudyFriend-Windows11-1.0.0-preview.zip",
+  "sha256": "76858755ec94494c1853c35c1e8d930e7488e49955bb425e15a5711e073182d8",
+  "imported_source_files": [
+    "THIRD_PARTY_NOTICES.json",
+    "app/client.js",
+    "app/index.html",
+    "app/launcher.mjs",
+    "app/notion-setup.mjs",
+    "app/server.mjs",
+    "app/style.css",
+    "autostart-off.cmd",
+    "autostart-on.cmd",
+    "install.cmd",
+    "licenses/README.txt",
+    "licenses/ajv-8.20.0-LICENSE.txt",
+    "licenses/fast-deep-equal-3.1.3-LICENSE.txt",
+    "licenses/fast-uri-3.1.6-LICENSE.txt",
+    "licenses/json-schema-traverse-1.0.0-LICENSE.txt",
+    "licenses/require-from-string-2.0.2-LICENSE.txt",
+    "licenses/sinclair-typebox-0.34.52-LICENSE.txt",
+    "licenses/ts-fsrs-5.4.2-LICENSE.txt",
+    "node-release.json",
+    "scripts/Check-Privacy.ps1",
+    "scripts/Common.ps1",
+    "scripts/Disable-Autostart.ps1",
+    "scripts/Enable-Autostart.ps1",
+    "scripts/Install-QBStudyFriend.ps1",
+    "scripts/Start-QBStudyFriend.ps1",
+    "scripts/Stop-QBStudyFriend.ps1",
+    "start.cmd",
+    "stop.cmd"
+  ],
+  "excluded": [
+    "compiled JavaScript bundles",
+    "old manual and validation reports",
+    "history and configuration"
+  ]
+}

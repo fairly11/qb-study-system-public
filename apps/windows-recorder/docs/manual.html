@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QB記録 Windows版 導入手順</title>
+<style>body{font:16px/1.85 system-ui,sans-serif;max-width:820px;margin:40px auto;padding:0 24px;color:#1b2634;background:#f6f8fb}main{background:white;padding:30px;border-radius:14px}h1{font-size:26px}h2{font-size:20px;margin-top:36px}code{background:#edf1f5;padding:2px 5px;overflow-wrap:anywhere}li{margin:8px 0}.note{border-left:4px solid #497397;padding:12px 18px;background:#edf5fb}a{color:#195c95}</style>
+</head><body><main>
+<h1>QB記録 Windows版</h1>
+<p>Windowsで解いた記録を、今までのNotionへ追加します。復習課題の計算は復習計算用Macで続けます。</p>
+<h2>1. Windowsに設置する</h2>
+<ol><li>ZIPをWindowsへ移して右クリックし、「すべて展開」を選びます。別添の <code>connection-targets.json</code> も移します。</li>
+<li>展開先の <code>install.cmd</code> をダブルクリックします。管理者として実行しません。</li>
+<li>公式Node.jsの実行環境を取得して検査します。CPUがARMかIntel/AMDかは自動判定します。インターネット接続が必要です。</li>
+<li>完了後、<code>start.cmd</code> をダブルクリックします。記録サービスのウィンドウは開いたままにします。</li></ol>
+<p>設置先は <code>%LOCALAPPDATA%\QBRecordWindows</code> です。すでに存在する場合は上書きせず停止します。</p>
+<h2>2. 既存のNotionへ接続する</h2>
+<ol><li>Chromeの操作画面で、接続先ファイルを読み込みます。解答ログ、問題マスター、復習親ページの3項目が入ります。</li>
+<li>既存の保存先にアクセスできるNotion接続キーを、秘密入力欄へ本人が貼り付けます。キーをチャットやメールへ貼り付けないでください。</li>
+<li>接続操作を行います。保存先の形式と閲覧権限を確認します。新しいデータベースや試験用の解答は作成しません。</li>
+<li>画面で接続済みと記録サービスの起動を確認します。</li></ol>
+<p class="note">Notion接続を済ませてから記録を始めます。未接続中は記録サービスを起動しません。接続済みになった後の通信障害では、記録をPC内の送信待ちに保存します。</p>
+<p>接続キーを手元で確認できない場合は、設定を止めたままにしてください。Macの設定ファイル全体には秘密や別端末のパスが含まれるため、コピーしません。</p>
+<h2>3. Chromeに記録拡張を読み込む</h2>
+<ol><li>Chromeのアドレス欄へ <code>chrome://extensions</code> を入力します。</li>
+<li>右上の「デベロッパーモード」を有効にします。</li>
+<li>「パッケージ化されていない拡張機能を読み込む」を選びます。</li>
+<li><code>%LOCALAPPDATA%\QBRecordWindows\browser-extension</code> を指定します。フォルダ選択欄に入力できます。</li>
+<li>QBを開き直し、拡張の表示で記録状態を確認します。</li></ol>
+<p>確認済みの復習セットは「復習」、移動元の情報がない正当な演習は原則「通常学習」です。照合できない場合は未確認として残します。手動変更は、その演習のこれからの解答にだけ適用します。</p>
+<h2>4. 最初の記録を確認する</h2>
+<ol><li>普段の学習で1〜2問解きます。確認のために架空の解答を作る必要はありません。</li>
+<li>直近の記録で、問題番号、正誤、選択番号、日時、学習区分を確認します。</li>
+<li>「Notion確認済み」になるまで待ち、Notionの同じ解答ログを開いて一致を確認します。</li></ol>
+<p>PCへの保存とNotionへの到達は別です。送信待ちは後で再試行します。保留が出た場合は画面のコードを確認し、履歴を削除してやり直さないでください。復習計算用MacはNotionへ届いた解答を、既存の計算ルールで取り込みます。</p>
+<h2>記録する情報</h2>
+<p>問題番号、選択番号、正誤、解答検出日時、学習区分を記録します。問題文、選択肢本文、解説、画像は取得・保存しません。第116回以前を含め、対応する問題番号の解答も記録します。</p>
+<h2>毎回の起動と停止</h2>
+<p>学習前に <code>start.cmd</code>、終了時は <code>stop.cmd</code> を使います。ログイン時にも起動したい場合だけ <code>autostart-on.cmd</code> でYESを入力します。解除は <code>autostart-off.cmd</code> です。復習課題を計算する予約は登録しません。</p>
+<h2>削除せず取り外す</h2>
+<p>記録サービスを停止し、自動起動を解除してからChromeの拡張を無効にします。Notionへの到達を確認するまで、設置先の <code>data</code> は保管してください。</p>
+<h2>今回確認できた範囲</h2>
+<p><a href="Validation-ja.txt">検証記録</a>を参照してください。Windows実機での導入、アクセス権、実際のQBとNotionの一連の動作は、導入先で確認する必要があります。</p>
+</main></body></html>

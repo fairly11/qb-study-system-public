@@ -1,0 +1,20 @@
+{
+  "schema_version": "1",
+  "record_type": "attempt_event",
+  "event_id": "00000000-0000-4000-8000-000000000004",
+  "question_key": "119A12",
+  "answered_at": "2026-08-24T12:34:56+09:00",
+  "result": "correct",
+  "selected_option_indices": [],
+  "provenance": {
+    "producer": "fixture",
+    "producer_version": "1.0.0",
+    "source_system": "local_test",
+    "recorded_at": "2026-08-24T12:35:00+09:00"
+  },
+  "quality": {
+    "acquisition_method": "imported_baseline",
+    "temporal_precision": "date_only",
+    "state_precision": "final_state_only"
+  }
+}

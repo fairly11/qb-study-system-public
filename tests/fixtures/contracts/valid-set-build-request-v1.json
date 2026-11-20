@@ -1,0 +1,20 @@
+{
+  "schema_version": "1",
+  "record_type": "set_build_request",
+  "request_id": "00000000-0000-4000-8000-000000000030",
+  "set_name": "8月25日の復習",
+  "question_keys": ["119A12", "119B3"],
+  "review_plan_id": "00000000-0000-4000-8000-000000000020",
+  "dry_run": true,
+  "provenance": {
+    "producer": "set-builder",
+    "producer_version": "1.0.0",
+    "source_system": "local_user",
+    "recorded_at": "2026-08-24T15:05:00Z"
+  },
+  "quality": {
+    "acquisition_method": "manual",
+    "temporal_precision": "not_applicable",
+    "state_precision": "not_applicable"
+  }
+}

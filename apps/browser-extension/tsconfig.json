@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": ["chrome"],
+    "outDir": "../../dist/typecheck/browser-extension",
+    "rootDir": "src",
+    "tsBuildInfoFile": "../../dist/typecheck/browser-extension/.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../../packages/contracts" },
+    { "path": "../../packages/question-normalizer" }
+  ]
+}

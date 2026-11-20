@@ -1,0 +1,27 @@
+{
+  "schema_version": "1",
+  "record_type": "sync_result",
+  "sync_result_id": "00000000-0000-4000-8000-000000000040",
+  "sync_run_id": "00000000-0000-4000-8000-000000000041",
+  "direction": "sqlite_to_google_sheets",
+  "started_at": "2026-08-24T15:10:00Z",
+  "completed_at": "2026-08-24T15:10:01Z",
+  "status": "succeeded",
+  "counts": {
+    "attempted": 9007199254740992,
+    "succeeded": 2,
+    "skipped": 0,
+    "failed": 0
+  },
+  "provenance": {
+    "producer": "sync-service",
+    "producer_version": "1.0.0",
+    "source_system": "local_sqlite",
+    "recorded_at": "2026-08-24T15:10:01Z"
+  },
+  "quality": {
+    "acquisition_method": "derived",
+    "temporal_precision": "exact",
+    "state_precision": "exact"
+  }
+}

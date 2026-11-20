@@ -1,0 +1,38 @@
+{
+  "name": "@qb-study/storage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./history-collector": {
+      "types": "./dist/history-collector.d.ts",
+      "import": "./dist/history-collector.js"
+    },
+    "./notion-sync": {
+      "types": "./dist/notion-sync.d.ts",
+      "import": "./dist/notion-sync.js"
+    },
+    "./migrations": {
+      "types": "./dist/migrations.d.ts",
+      "import": "./dist/migrations.js"
+    }
+  },
+  "files": [
+    "dist",
+    "migrations"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.test.json --pretty false",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "dependencies": {
+    "@qb-study/contracts": "workspace:*"
+  }
+}

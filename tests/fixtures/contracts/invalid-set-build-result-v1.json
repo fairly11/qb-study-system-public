@@ -1,0 +1,26 @@
+{
+  "schema_version": "1",
+  "record_type": "set_build_result",
+  "result_id": "00000000-0000-4000-8000-000000000031",
+  "request_id": "00000000-0000-4000-8000-000000000030",
+  "completed_at": "2026-08-24T15:06:00Z",
+  "status": "failed",
+  "items": [
+    {
+      "question_key": "119A12",
+      "status": "failed",
+      "error_code": "unsafe error"
+    }
+  ],
+  "provenance": {
+    "producer": "set-builder",
+    "producer_version": "1.0.0",
+    "source_system": "local_dry_run",
+    "recorded_at": "2026-08-24T15:06:00Z"
+  },
+  "quality": {
+    "acquisition_method": "derived",
+    "temporal_precision": "exact",
+    "state_precision": "exact"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "name": "qb-study-system",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24.19.0 <25",
+    "pnpm": ">=11.19.0 <12"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.19.0",
+      "onFail": "download"
+    },
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.19.0",
+      "onFail": "download"
+    }
+  },
+  "scripts": {
+    "build": "pnpm schemas:check && tsc -b && pnpm --filter @qb-study/browser-extension bundle && pnpm --filter @qb-study/ios-safari bundle",
+    "test": "vitest run",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "pnpm -r --if-present typecheck && tsc -p tests/tsconfig.json --pretty false && pnpm typecheck:windows-recorder",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "verify:browser-extension": "pnpm --filter @qb-study/browser-extension verify",
+    "verify:set-builder": "pnpm --filter @qb-study/set-builder verify",
+    "verify:history-collector": "pnpm --filter @qb-study/history-collector verify",
+    "verify:contracts": "pnpm --filter @qb-study/contracts verify",
+    "verify:storage": "pnpm --filter @qb-study/storage verify",
+    "verify:question-normalizer": "pnpm --filter @qb-study/question-normalizer verify",
+    "verify:review-engine": "pnpm --filter @qb-study/review-engine verify",
+    "release:trusted": "pnpm schemas:check && tsc -b --force && pnpm --filter @qb-study/browser-extension bundle && pnpm --filter @qb-study/browser-extension release:trusted:package",
+    "schemas:generate": "pnpm --filter @qb-study/contracts schemas:generate",
+    "schemas:check": "pnpm --filter @qb-study/contracts schemas:check",
+    "verify:ios-safari": "pnpm --filter @qb-study/ios-safari verify && pnpm test:ios-native",
+    "test:ios-native": "sh apps/ios-safari/native/scripts/test-core.sh",
+    "build:windows-recorder": "node apps/windows-recorder/scripts/build.mjs",
+    "test:windows-recorder": "node --test apps/windows-recorder/test/*.test.mjs",
+    "typecheck:windows-recorder": "tsc --noEmit -p apps/windows-recorder/tsconfig.json"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^24.10.0",
+    "eslint": "^10.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.52.0",
+    "vitest": "^4.0.18"
+  }
+}

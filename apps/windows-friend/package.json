@@ -1,0 +1,12 @@
+{
+  "name": "@qb-study/windows-friend",
+  "version": "1.1.0-preview",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "lint": "eslint src scripts test template --max-warnings 0",
+    "typecheck": "tsc -p tsconfig.json --pretty false",
+    "test": "node --test test/*.test.mjs"
+  }
+}

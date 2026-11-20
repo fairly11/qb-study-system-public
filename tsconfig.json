@@ -1,0 +1,12 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/contracts" },
+    { "path": "packages/question-normalizer" },
+    { "path": "packages/storage" },
+    { "path": "packages/review-engine" },
+    { "path": "services/history-collector" },
+    { "path": "apps/set-builder" },
+    { "path": "apps/browser-extension" }
+  ]
+}

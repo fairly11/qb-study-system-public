@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true,
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "paths": {
+      "@qb-study/contracts": ["../../packages/contracts/src/index.ts"],
+      "@qb-study/question-normalizer": ["../../packages/question-normalizer/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts", "../browser-extension/test/node-stream-web.d.ts"]
+}

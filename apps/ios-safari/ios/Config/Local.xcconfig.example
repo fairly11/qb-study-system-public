@@ -1,0 +1,5 @@
+// Copy to Local.xcconfig, then enter your registered identifiers and Team ID.
+// No Notion token belongs here.
+QB_BUNDLE_PREFIX = jp.yourname.qbrecord
+QB_APP_GROUP_ID = group.jp.yourname.qbrecord
+DEVELOPMENT_TEAM = YOUR_TEAM_ID

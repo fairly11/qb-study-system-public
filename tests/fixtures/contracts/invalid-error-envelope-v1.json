@@ -1,0 +1,22 @@
+{
+  "schema_version": "1",
+  "record_type": "error_envelope",
+  "error_id": "00000000-0000-4000-8000-000000000050",
+  "occurred_at": "2026-08-24T15:15:00Z",
+  "component": "history-collector",
+  "error_code": "IDEMPOTENCY_CONFLICT",
+  "retryable": false,
+  "correlation_id": "00000000-0000-4000-8000-000000000051",
+  "identifiers": {},
+  "provenance": {
+    "producer": "history-collector",
+    "producer_version": "1.0.0",
+    "source_system": "local_collector",
+    "recorded_at": "2026-08-24T15:15:00Z"
+  },
+  "quality": {
+    "acquisition_method": "derived",
+    "temporal_precision": "exact",
+    "state_precision": "exact"
+  }
+}

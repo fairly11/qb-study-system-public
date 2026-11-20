@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>QB Study Friend</title><link rel="stylesheet" href="/style.css"><script src="/client.js" defer></script></head>
+<body><main>
+<header><div><p class="eyebrow">WINDOWS + CHROME</p><h1>QB Study Friend</h1><p>解いた記録を、次の復習へ。</p></div><span class="badge">試用版 1.1</span></header>
+<div id="notice" class="notice" role="status">接続を確認しています…</div>
+<section><div class="section-head"><h2>このPCの解答記録</h2><button id="refresh" type="button">記録を更新</button></div>
+<p id="collector">記録サービス：確認中</p><div class="stats"><div><strong id="total">—</strong><span>PCに保存</span></div><div><strong id="confirmed">—</strong><span>PC記録のNotion保存確認</span></div><div><strong id="pending">—</strong><span>同期待ち</span></div><div><strong id="blocked">—</strong><span>同期の要確認</span></div></div>
+<p id="localOnly" class="muted"></p><p class="muted">このPCで受け付けた記録の直近20件です。iPhoneだけで記録した解答はこの件数・一覧には含みません。Notionのリンクを開くと実際の保存内容を確認できます。記録用の黒いウィンドウは開いたままにしてください。</p>
+<div class="table-wrap"><table><thead><tr><th>問題</th><th>解答時刻</th><th>自分の解答</th><th>判定</th><th>学習目的</th><th>Notion</th></tr></thead><tbody id="records"></tbody></table></div></section>
+<section id="setup-section"><h2>はじめに：自分のNotionと接続</h2><p>マニュアルに従い、ご自身のNotionに空の専用ページと内部接続を作成し、そのページへのアクセスを許可してください。下の操作で「QB問題マスター」と「QB解答ログ」を作ります。</p>
+<p class="important">解答する前に設定してください。設定前にPCへ保存された記録は自動ではNotionへ転送されません。</p>
+<label>空の専用ページのURL<input id="parentPage" type="url" placeholder="https://app.notion.com/..." autocomplete="off"></label>
+<label>Notionの内部接続トークン（秘密の接続キー）<input id="token" type="password" autocomplete="off" spellcheck="false"></label>
+<p class="muted">トークンはこのPCに保存され、Notionとの通信だけに使われます。Claudeのチャットや配布者に送る必要はありません。既に設定した保存先は上書きしません。</p>
+<button id="setup" type="button">Notionの保存先を作る</button></section>
+<section id="iphone-section" hidden><h2>iPhoneにも同じ保存先を設定する</h2>
+<p>iPhone版を別途導入した後、「QB記録」の設定欄へ次の3項目を入力します。このWindows配布ZIPにiPhoneアプリは含まれていません。</p>
+<label>解答ログのデータソースID<input id="attemptsId" readonly></label>
+<label>問題マスターのデータソースID<input id="questionsId" readonly></label>
+<label>復習計画の親ページID<input id="reviewParentId" readonly></label>
+<p class="muted">ここには接続キーを表示しません。キーはご自身でiPhoneの秘密入力欄に設定し、Claudeや配布者へ送らないでください。iPhoneから届いた記録も、同じNotionからの復習計算に使います。</p></section>
+<section><div class="section-head"><h2>今日の復習</h2><button id="prepare" type="button">今日の復習候補を作る</button></div>
+<p>同じNotionに届いたWindows・iPhoneの解答を使い、当日分の翌午前4時（日本時間）より前までに復習時期を迎える問題を選びます。初期上限は100問です。通常学習・復習・未分類の正誤を計算に使います。保存済みの同日計画は再計算せず、日本時間の午前4時に日付が切り替わります。初日は候補がない場合があります。</p><p id="review-limit" class="muted"></p>
+<div id="review-empty" class="muted">まだ候補を作成していません。</div>
+<div id="review" hidden><p id="review-summary"></p><p><a id="review-notion" target="_blank" rel="noopener noreferrer" hidden>Notionの復習ページを開く</a></p>
+<label>QBで使うセット名<input id="setName" readonly></label><label>登録する問題番号（上から順に追加）<textarea id="plannedIds" rows="5" readonly></textarea></label>
+<button id="begin" type="button">QBセットの登録を始める</button>
+<div id="register-panel" hidden><p id="resume" class="important"></p><ol><li>QBで上記と同じセット名を検索します。既に存在する場合は、そのセットを開きます。</li><li>未作成の場合に限り、QBの画面でセットを作り、上記の順番どおりに問題を追加します。</li><li>完成したセットを「追加日時の古い順」に並べ、QB上の全問題番号を読み取り、下に入力します。</li><li>セットを開いた検索画面のURLを貼り付けて照合します。</li></ol>
+<p><a href="https://qb.medilink-study.com/" target="_blank" rel="noopener noreferrer">QBを開く</a></p>
+<label>完成したセットのURL<input id="setUrl" type="url" placeholder="https://qb.medilink-study.com/search?questionSetId=..." autocomplete="off"></label>
+<label>QB上で確認した全問題番号（表示順。空白・改行・カンマで区切る）<textarea id="observedIds" rows="5" placeholder="QBの完成済みセットを見て入力してください"></textarea></label>
+<label class="check"><input id="confirmedSet" type="checkbox">候補一覧の転記だけでなく、QB上のセットの全件数・全問題番号・順序・URLを確認しました。</label>
+<p class="muted">この画面はQBの中身を直接読みません。入力した番号と候補を照合します。問題文・選択肢の文章・解説は入力しないでください。</p>
+<button id="register" type="button">内容を照合して復習セットを登録</button></div>
+<p id="set-result"></p><a id="verified-set" target="_blank" rel="noopener noreferrer" hidden>登録済みのQB復習セットを開く</a></div></section>
+<footer><p>通常学習は自動判定し、照合済みの登録セットから開始した演習を「復習」として記録します。開始元を確認できない場合は「未分類」になります。</p><p>Windows実機での動作確認は未実施です。導入後に実際に1〜2問解き、PCとNotionの保存内容を照合してください。詳しい手順は配布ZIPの docs / manual.html にあります。</p></footer>
+</main></body></html>

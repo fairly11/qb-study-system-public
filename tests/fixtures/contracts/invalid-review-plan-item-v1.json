@@ -1,0 +1,20 @@
+{
+  "schema_version": "1",
+  "record_type": "review_plan_item",
+  "review_plan_item_id": "00000000-0000-4000-8000-000000000021",
+  "review_plan_id": "00000000-0000-4000-8000-000000000020",
+  "question_key": "119A12",
+  "position": 0,
+  "selection_reasons": ["due"],
+  "provenance": {
+    "producer": "review-engine",
+    "producer_version": "1.0.0",
+    "source_system": "local_review",
+    "recorded_at": "2026-08-24T15:00:00Z"
+  },
+  "quality": {
+    "acquisition_method": "derived",
+    "temporal_precision": "date_only",
+    "state_precision": "exact"
+  }
+}

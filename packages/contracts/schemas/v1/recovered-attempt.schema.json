@@ -1,0 +1,86 @@
+{
+  "$id": "https://schemas.qb-study.local/v1/recovered-attempt.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "schema_version",
+    "record_type",
+    "recovery_id",
+    "question_key",
+    "answered_on",
+    "result",
+    "observed_at",
+    "recovered_at",
+    "study_mode",
+    "selected_option_indices",
+    "source_system",
+    "source_event_id",
+    "source_segment"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1",
+      "type": "string"
+    },
+    "record_type": {
+      "const": "recovered_attempt",
+      "type": "string"
+    },
+    "recovery_id": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "question_key": {
+      "pattern": "^[0-9]{3}[A-Z][1-9][0-9]{0,2}$",
+      "type": "string"
+    },
+    "answered_on": {
+      "format": "date",
+      "type": "string"
+    },
+    "result": {
+      "anyOf": [
+        {
+          "const": "correct",
+          "type": "string"
+        },
+        {
+          "const": "incorrect",
+          "type": "string"
+        }
+      ]
+    },
+    "observed_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "recovered_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "study_mode": {
+      "const": "unclassified",
+      "type": "string"
+    },
+    "selected_option_indices": {
+      "type": "null"
+    },
+    "source_system": {
+      "const": "computer-history",
+      "type": "string"
+    },
+    "source_event_id": {
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "type": "string"
+    },
+    "source_segment": {
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^[A-Za-z0-9_.:-]+$",
+      "type": "string"
+    }
+  }
+}

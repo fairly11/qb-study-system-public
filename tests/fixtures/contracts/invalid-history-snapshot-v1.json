@@ -1,0 +1,24 @@
+{
+  "schema_version": "1",
+  "record_type": "history_snapshot",
+  "snapshot_id": "00000000-0000-4000-8000-000000000002",
+  "snapshot_run_id": "00000000-0000-4000-8000-000000000003",
+  "question_key": "119A12",
+  "observed_at": "2026-08-24T12:40:00+09:00",
+  "final_state": "correct",
+  "attempt_count": 2,
+  "last_attempted_at": "2026-08-24T03:00:00Z",
+  "last_attempted_on": "2026-08-24",
+  "provenance": {
+    "producer": "fixture",
+    "producer_version": "1.0.0",
+    "source_system": "local_test",
+    "source_record_id": "snapshot-fixture-1",
+    "recorded_at": "2026-08-24T12:40:00+09:00"
+  },
+  "quality": {
+    "acquisition_method": "imported_baseline",
+    "temporal_precision": "date_only",
+    "state_precision": "final_state_only"
+  }
+}

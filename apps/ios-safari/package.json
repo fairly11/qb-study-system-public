@@ -1,0 +1,22 @@
+{
+  "name": "@qb-study/ios-safari",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --filter @qb-study/contracts build && pnpm --filter @qb-study/question-normalizer build && node scripts/build.mjs",
+    "bundle": "node scripts/build.mjs",
+    "lint": "eslint src test scripts --max-warnings=0",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc -p tsconfig.json --pretty false",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "dependencies": {
+    "@qb-study/contracts": "workspace:*",
+    "@qb-study/question-normalizer": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "happy-dom": "^20.11.6"
+  }
+}

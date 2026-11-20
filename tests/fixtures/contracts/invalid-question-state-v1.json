@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "record_type": "question_state",
+  "state_id": "00000000-0000-4000-8000-000000000010",
+  "question_key": "119A12",
+  "computed_at": "2026-08-24T15:00:00.1234Z",
+  "algorithm_id": "review-engine",
+  "algorithm_version": "1.0.0",
+  "evidence_watermark": null,
+  "evidence_sufficiency": "insufficient",
+  "next_review_on": null,
+  "provenance": {
+    "producer": "review-engine",
+    "producer_version": "1.0.0",
+    "source_system": "local_review",
+    "recorded_at": "2026-08-24T15:00:00Z"
+  },
+  "quality": {
+    "acquisition_method": "derived",
+    "temporal_precision": "exact",
+    "state_precision": "exact"
+  }
+}

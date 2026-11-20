@@ -1,0 +1,30 @@
+{
+  "name": "@qb-study/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "schemas"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "tsc -b --clean",
+    "lint": "eslint src scripts test --max-warnings=0",
+    "schemas:generate": "node --import tsx scripts/generate-schemas.ts",
+    "schemas:check": "node --import tsx scripts/generate-schemas.ts --check",
+    "test": "vitest run",
+    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.type-tests.json --pretty false",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm schemas:check && pnpm build"
+  },
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.41",
+    "ajv": "^8.17.1"
+  }
+}

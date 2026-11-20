@@ -1,0 +1,65 @@
+{
+  "$id": "https://schemas.qb-study.local/v1/study-context.schema.json",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "review_plan_id": {}
+        },
+        "required": [
+          "review_plan_id"
+        ]
+      },
+      "then": {
+        "properties": {
+          "study_mode": {
+            "const": "review"
+          }
+        }
+      }
+    }
+  ],
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "type": "object",
+  "required": [
+    "schema_version",
+    "record_type",
+    "event_id",
+    "study_mode"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1",
+      "type": "string"
+    },
+    "record_type": {
+      "const": "study_context",
+      "type": "string"
+    },
+    "event_id": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "study_mode": {
+      "anyOf": [
+        {
+          "const": "normal",
+          "type": "string"
+        },
+        {
+          "const": "review",
+          "type": "string"
+        },
+        {
+          "const": "unclassified",
+          "type": "string"
+        }
+      ]
+    },
+    "review_plan_id": {
+      "format": "uuid",
+      "type": "string"
+    }
+  }
+}

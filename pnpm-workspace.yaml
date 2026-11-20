@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - services/*
+  - packages/*
+
+sharedWorkspaceLockfile: true
+disallowWorkspaceCycles: true
+engineStrict: true
+strictPeerDependencies: true
+allowBuilds:
+  esbuild: false

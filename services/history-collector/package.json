@@ -1,0 +1,29 @@
+{
+  "name": "@qb-study/history-collector",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "clean": "tsc -b --clean",
+    "lint": "eslint src test vitest.config.ts --max-warnings=0",
+    "start": "pnpm build && node dist/cli.js",
+    "notion:configure": "node dist/configure-notion.js",
+    "review": "node dist/review-cli.js",
+    "test": "vitest run",
+    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.test.json --pretty false",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "dependencies": {
+    "@qb-study/review-engine": "workspace:*",
+    "@qb-study/set-builder": "workspace:*",
+    "@qb-study/contracts": "workspace:*",
+    "@qb-study/storage": "workspace:*"
+  }
+}

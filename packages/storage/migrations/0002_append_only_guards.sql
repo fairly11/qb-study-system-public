@@ -1,0 +1,119 @@
+CREATE TRIGGER attempts_reject_update
+BEFORE UPDATE ON attempts
+BEGIN
+  SELECT RAISE(ABORT, 'ATTEMPTS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER attempts_reject_delete
+BEFORE DELETE ON attempts
+BEGIN
+  SELECT RAISE(ABORT, 'ATTEMPTS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER attempt_selected_options_reject_update
+BEFORE UPDATE ON attempt_selected_options
+BEGIN
+  SELECT RAISE(ABORT, 'ATTEMPT_OPTIONS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER attempt_selected_options_reject_delete
+BEFORE DELETE ON attempt_selected_options
+BEGIN
+  SELECT RAISE(ABORT, 'ATTEMPT_OPTIONS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER history_snapshots_reject_update
+BEFORE UPDATE ON history_snapshots
+BEGIN
+  SELECT RAISE(ABORT, 'HISTORY_SNAPSHOTS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER history_snapshots_reject_delete
+BEFORE DELETE ON history_snapshots
+BEGIN
+  SELECT RAISE(ABORT, 'HISTORY_SNAPSHOTS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER review_plan_item_reasons_reject_update
+BEFORE UPDATE ON review_plan_item_reasons
+BEGIN
+  SELECT RAISE(ABORT, 'REVIEW_PLAN_REASONS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER review_plan_item_reasons_reject_delete
+BEFORE DELETE ON review_plan_item_reasons
+BEGIN
+  SELECT RAISE(ABORT, 'REVIEW_PLAN_REASONS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER review_plans_reject_update
+BEFORE UPDATE ON review_plans
+BEGIN
+  SELECT RAISE(ABORT, 'REVIEW_PLANS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER review_plans_reject_delete
+BEFORE DELETE ON review_plans
+BEGIN
+  SELECT RAISE(ABORT, 'REVIEW_PLANS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER review_plan_items_reject_update
+BEFORE UPDATE ON review_plan_items
+BEGIN
+  SELECT RAISE(ABORT, 'REVIEW_PLAN_ITEMS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER review_plan_items_reject_delete
+BEFORE DELETE ON review_plan_items
+BEGIN
+  SELECT RAISE(ABORT, 'REVIEW_PLAN_ITEMS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER set_creation_runs_reject_update
+BEFORE UPDATE ON set_creation_runs
+BEGIN
+  SELECT RAISE(ABORT, 'SET_CREATION_RUNS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER set_creation_runs_reject_delete
+BEFORE DELETE ON set_creation_runs
+BEGIN
+  SELECT RAISE(ABORT, 'SET_CREATION_RUNS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER sync_runs_reject_update
+BEFORE UPDATE ON sync_runs
+BEGIN
+  SELECT RAISE(ABORT, 'SYNC_RUNS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER sync_runs_reject_delete
+BEFORE DELETE ON sync_runs
+BEGIN
+  SELECT RAISE(ABORT, 'SYNC_RUNS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER system_logs_reject_update
+BEFORE UPDATE ON system_logs
+BEGIN
+  SELECT RAISE(ABORT, 'SYSTEM_LOGS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER system_logs_reject_delete
+BEFORE DELETE ON system_logs
+BEGIN
+  SELECT RAISE(ABORT, 'SYSTEM_LOGS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER system_log_counters_reject_update
+BEFORE UPDATE ON system_log_counters
+BEGIN
+  SELECT RAISE(ABORT, 'SYSTEM_LOG_COUNTERS_APPEND_ONLY');
+END;
+
+CREATE TRIGGER system_log_counters_reject_delete
+BEFORE DELETE ON system_log_counters
+BEGIN
+  SELECT RAISE(ABORT, 'SYSTEM_LOG_COUNTERS_APPEND_ONLY');
+END;

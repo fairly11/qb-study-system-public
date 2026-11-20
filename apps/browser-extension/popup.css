@@ -1,0 +1,142 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  width: 360px;
+  margin: 0;
+  color: CanvasText;
+  background: Canvas;
+}
+
+main {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.consent {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid GrayText;
+}
+
+.list-title {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+ul {
+  margin: 0;
+  padding-inline-start: 24px;
+}
+
+#consent-state {
+  margin: 2px 0;
+  color: GrayText;
+}
+
+.recent {
+  display: grid;
+  gap: 6px;
+  padding-block: 4px;
+  border-block: 1px solid GrayText;
+}
+
+#recent-attempts-empty,
+.recent-note {
+  margin: 0;
+  color: GrayText;
+}
+
+#recent-attempts {
+  display: grid;
+  max-height: 240px;
+  gap: 8px;
+  margin: 0;
+  padding-inline-start: 24px;
+  overflow-y: auto;
+}
+
+#recent-attempts[hidden] {
+  display: none;
+}
+
+#recent-attempts li {
+  display: grid;
+  gap: 2px;
+}
+
+#recent-attempts time,
+.recent-note {
+  font-size: 12px;
+}
+
+dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+dl div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+}
+
+dt {
+  font-weight: 600;
+}
+
+dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+label {
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+input,
+select,
+button {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 34px;
+  font: inherit;
+}
+
+input,
+select {
+  padding: 6px 8px;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: wait;
+}
+
+#command-status {
+  margin: 2px 0 0;
+  color: GrayText;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}

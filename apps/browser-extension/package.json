@@ -1,0 +1,28 @@
+{
+  "name": "@qb-study/browser-extension",
+  "version": "0.1.2",
+  "private": true,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm --filter @qb-study/contracts build && pnpm --filter @qb-study/question-normalizer build && pnpm bundle",
+    "bundle": "node scripts/build.mjs",
+    "clean": "tsc -b --clean",
+    "lint": "eslint src test scripts --max-warnings=0",
+    "release:trusted:package": "node scripts/build-trusted-release.mjs",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.test.json --pretty false",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "dependencies": {
+    "@qb-study/contracts": "workspace:*",
+    "@qb-study/question-normalizer": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.2.6",
+    "esbuild": "^0.28.2",
+    "happy-dom": "^20.11.6"
+  }
+}

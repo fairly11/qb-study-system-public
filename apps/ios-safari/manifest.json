@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "QB記録",
+  "version": "0.1.0",
+  "description": "QBで確定した解答の記録を端末に保存し、管理アプリ経由でNotionへ送信します。",
+  "permissions": ["storage", "nativeMessaging"],
+  "host_permissions": ["https://qb.medilink-study.com/*"],
+  "background": { "scripts": ["background.js"], "persistent": false },
+  "content_scripts": [{
+    "matches": ["https://qb.medilink-study.com/*"],
+    "js": ["content.js"],
+    "run_at": "document_start",
+    "all_frames": false
+  }],
+  "action": { "default_title": "QB記録", "default_popup": "popup.html" },
+  "content_security_policy": { "extension_pages": "script-src 'self'; object-src 'none'; connect-src 'none'" }
+}
