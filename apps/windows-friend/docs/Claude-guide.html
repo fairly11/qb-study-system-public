@@ -1,12 +1,76 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>QB Study Friend — Claude用の導入・運用手順</title><link rel="stylesheet" href="guide.css"></head><body><main><header><p class="label">QB STUDY FRIEND · CLAUDE DESKTOP</p><h1>Claudeに導入と復習セット作成を任せる</h1><p>1.1.0-preview ／ 2026年10月29日</p><p>候補の計算は同梱プログラムが行い、Claudeは起動、QBの画面操作、保存結果の確認を担当します。プログラムだけでも利用できます。</p></header>
-<div class="note">この文書や指示文を受け取っただけで、Claudeの接続・予約・権限が設定されることはありません。本人が内容を読み、対象のPCと自分のアカウントで実行する場合に、指示文をClaudeへ貼り付けてください。</div>
-<nav aria-label="目次"><ul><li><a href="#prepare">最初に一度だけ準備する</a></li><li><a href="#install">導入を依頼する</a></li><li><a href="#daily">毎日の復習を依頼する</a></li><li><a href="#commands">コマンドから操作する場合</a></li><li><a href="#schedule">自動実行を予約したい場合</a></li><li><a href="#scope">Claudeへ渡す範囲</a></li><li><a href="#complete">完成の判断</a></li></ul></nav>
-<section id="prepare"><h2>最初に一度だけ準備する</h2><ol class="steps"><li>WindowsのClaudeデスクトップアプリを最新版にし、有料プランの自分のアカウントでログインします。Coworkを選べる場合はCoworkで新しい作業を始めます。ChatとCoworkの区別がない新しい画面では、通常の入力欄から作業を依頼します。</li><li>Chromeに公式の <a href="https://support.claude.com/en/articles/12012173-get-started-with-claude-in-chrome">Claude in Chrome</a> を導入し、自分のClaudeアカウントへ接続します。QB記録用の拡張とは別の拡張です。</li><li>Claudeデスクトップの設定で接続機能を開き、Claude in Chromeを有効にします。作業する会話でも、その接続を選びます。画面の名称が異なる場合は公式案内に沿ってください。許可する操作先は本人のQBと、このPCのQB Study Friend操作画面です。</li><li>QBへ本人がログインします。パスワード・追加認証・CAPTCHAが必要なときは本人が行います。Claudeに認証情報を貼り付けません。</li><li>配布ZIPを展開し、この <code>docs</code> フォルダーの文書をClaudeが読めるようにします。接続設定後の <code>data</code> フォルダーや、秘密の接続キーを含むファイルは添付しません。</li></ol><p>Claudeの作業がクラウドで続いていても、今回使うWindowsのファイル・操作画面・Chromeへ接続するには、PCが起きていて、Claudeデスクトップが開き、ネット接続されている必要があります。これは<a href="https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork">Claude公式のローカルアクセス条件</a>に基づきます。</p></section>
-<section id="install"><h2>導入を依頼する</h2><ol class="steps"><li><a href="CLAUDE_SETUP_PROMPT.txt">CLAUDE_SETUP_PROMPT.txt</a> を開き、内容を確認してから全文をClaudeに貼り付けます。同じフォルダーの <a href="manual.html">manual.html</a> も渡します。</li><li>Claudeが、このPCのフォルダーやChromeを操作できるか確認します。提供されていない操作機能を、使用できたものとして先へ進めさせないでください。初回の <code>install.cmd</code>・<code>start.cmd</code> 起動は、本人のダブルクリックで行っても構いません。</li><li>Notionの空ページと接続の作成は本人のアカウントで行います。接続キーを入力する段階ではClaudeの操作を止め、本人がQB Study Friendの秘密入力欄へ貼り付けます。</li><li>初期設定の保存先をNotionで確認したら、本人が普段の学習として1〜2問を解きます。Claudeには、問題番号・正誤・選択記号・日時・件数だけでPCとNotionの記録を照合させます。</li></ol><p>導入が完了しても、Windows実機での記録、Notion送信、日次セット作成はそれぞれ別の確認です。Claudeの報告で「どこまで実際に確認したか」を区別してください。</p></section>
-<section id="daily"><h2>毎日の復習を依頼する</h2><ol class="steps"><li><code>start.cmd</code> を開き、ChromeのQB Study Friend操作画面を表示します。ClaudeデスクトップとChromeも開いたままにします。</li><li><a href="CLAUDE_DAILY_PROMPT.txt">CLAUDE_DAILY_PROMPT.txt</a> の全文をClaudeへ送ります。初回はこの文書も一緒に渡してください。</li><li>Claudeは「今日の復習候補を作る」を押し、既存プログラムの結果を使います。独自の問題選定、日次計画の削除、候補の入れ替えは行いません。</li><li>ClaudeはQBの問題セット一覧から、表示された名前と番号順のセットを作り、再読み込みして全件を確認します。中断時は同じ計画と同じセットから再開します。</li><li>操作画面への登録・照合が成功した後、Notionの候補ページにも同じQBセットURLがあることを読み戻します。報告されたリンクから本人が復習を始めます。</li></ol><p>候補は最大100問です。多い日はブラウザ操作に時間とClaudeの利用枠を使います。途中で利用制限に達した場合も、計画や作成途中のセットを消さず、同じ作業を再開してください。</p><p>iPhoneを併用する場合は、候補計算の前にiPhoneの記録が同じ本人のNotionへ届いている必要があります。Windows操作画面の「PCに保存」の件数だけではiPhoneの同期を確認できません。</p></section>
-<section id="commands"><h2>コマンドから操作する場合</h2><p>ClaudeがこのWindows上でコマンドを実行できる場合は、<code>review.cmd</code> から同じ操作を行えます。<strong>先に <code>start.cmd</code> で操作画面と記録サービスを起動してください。</strong>クラウド内の端末で実行しても、このPCのプログラムには届きません。コマンドが使えなければ、前述の画面操作を使います。</p><p>まず状態を読むコマンドです。実行するフォルダーは任意です。Windows PowerShellでは、次をそのまま実行できます。</p><pre><code>&amp; "$env:LOCALAPPDATA\QBStudyFriend\review.cmd" status</code></pre><p>コマンドプロンプト（cmd.exe）では、次の書き方です。</p><pre><code>"%LOCALAPPDATA%\QBStudyFriend\review.cmd" status</code></pre><p>成功すると、記録の件数と <code>review.day</code>（現在の復習対象日）、準備済みなら <code>review.manifest</code>（セット名と問題番号の計画）を含むJSONが返ります。JSONは項目名と値を組にしたデータです。この操作は状態の読み取りで、QBセットやNotionの行は作りません。秘密の接続キーは出力しません。</p><p>以下は続く引数の書式です。<code>YYYY-MM-DD</code> は直前の <code>status</code> が返した <code>review.day</code> に置き換えます。古い日付や例のまま実行しません。ファイルの指定には、そのWindows上の絶対パスを使います。</p><table><thead><tr><th>review.cmd の後ろに付ける引数</th><th>目的と保存されるもの</th></tr></thead><tbody><tr><td><code>prepare YYYY-MM-DD</code></td><td>その日の候補を計算し、PCに固定計画と処理記録、Notionに候補ページを保存します。同日計画があれば再利用します。成功結果の対象日・候補・NotionのURLを確認します。</td></tr><tr><td><code>begin YYYY-MM-DD</code></td><td>対象セットを作り始める意図をPCへ記録します。この時点ではQBセットは作りません。戻り値の <code>may_create</code> と既存セットの情報を見て、作成または再開を判断します。</td></tr><tr><td><code>remaining "C:\絶対パス\observed.json"</code></td><td>QBから読み取った途中の番号列が計画の先頭と一致するか確認し、残りを返します。QBやNotionへの書き込みはありません。不一致なら追加を止めます。</td></tr><tr><td><code>register "C:\絶対パス\verified.json"</code></td><td>QBで全件を独立に確認した後、URLと番号を照合し、PCへ照合結果、Notionへセットのリンクを保存します。QBの問題追加そのものは行いません。成功後もNotionを開き直し、同じURLを確認します。</td></tr></tbody></table><p>たとえばPowerShellの <code>status</code> の末尾を、対象日を指定した <code>prepare YYYY-MM-DD</code> に置き換えて使います。本人の一時作業フォルダーに、Claudeが実際の読み取り結果だけで次の入力ファイルを作ります。<code>data</code> や設定ファイルは直接変更しません。</p><ul><li><code>remaining</code> 用：<code>{"day":"対象日","ids":["QB上で確認した番号", "次の番号"]}</code>。<code>ids</code> は表示順の配列です。</li><li><code>register</code> 用：<code>{"day":"対象日","url":"同じQBセットの検索画面URL","ids":"番号を改行で区切った文字列","confirmed":true}</code>。<code>confirmed</code> は全件を実際に確認したときだけ <code>true</code> にします。</li></ul><p>上記のJSONは形の説明です。文字どおりの「対象日」「番号」や、架空の問題番号を本番へ渡しません。作業用JSONに必要なのは対象日・安全な問題番号・セットURLだけで、Notionキーやセッション情報は不要です。キーの読み取りはプログラム内部で処理されるため、Claudeが <code>session.json</code> や接続キーファイルを直接読む必要はありません。</p></section>
-<section id="schedule"><h2>自動実行を予約したい場合</h2><p>まず本人が見ている状態で、候補計算からQBセット作成・Notionの読み戻しまで一度成功させてください。その後に、Claude側で定期実行を設定します。ZIPのインストールだけでは予約を作りません。</p><p>現行のClaudeでは、Coworkの <code>/schedule</code> または予定の管理画面から予約を作れます。利用中のプラン・組織設定・画面でこの機能が使えるか確認してください。<a href="https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork">公式説明</a>のクラウド予約と、Windowsのローカル処理に接続できることは別です。</p><ol class="steps"><li>同じClaude作業に日常運用の指示文を保存します。</li><li>本人の指示で、日本時間の毎日04:00に候補計算とセット作成、07:00に同日の完成確認を予約します。両方とも同じ日次計画と同じQBセットを使い、07:00に新しいセットを作りません。</li><li>予約の管理画面で、保存された時刻・タイムゾーン・指示内容を読み直します。「予約する予定」という返答だけでは設定済みにしません。</li><li>実行時間にPC・Claudeデスクトップ・Chrome・記録サービスが使えるようにします。PCがスリープ中、接続が切れている、QBの認証待ちなどで操作できない場合は、完了を保証できません。保護設定の解除は必要ありません。</li><li>初回の予約実行後、QBセットの実在とNotionのリンクを確認します。PCが使えず未実行だった場合は、その日の保存済み計画から再開します。過去の未実行日をまとめて生成しません。</li></ol><p><code>autostart-on.cmd</code> はログイン時に記録サービスを起動する機能です。Claudeの定期実行やPCのスリープ解除を設定するものではありません。</p></section>
-<section id="scope"><h2>Claudeへ渡す範囲</h2><table><thead><tr><th>使ってよいもの</th><th>渡さないもの</th></tr></thead><tbody><tr><td>同梱手順、復習候補の問題番号、セット名、件数、URL、保存結果の確認用コード</td><td>Notion接続キー、パスワード、Cookie、セッションファイル、設定済みの <code>data</code> フォルダー</td></tr><tr><td>QBの公開画面上のセット作成・追加・番号照合</td><td>QBの問題文、選択肢本文、解説、画像、非公開APIの解析</td></tr></tbody></table><p>対象外のセットや過去の学習履歴は変更しません。操作結果が不明なときは、読み戻しで状態を確定してから続けます。自動承認やOSの制限で拒否された場合は、別経路で回避せず、拒否された操作と理由を報告させてください。</p></section>
-<section id="complete"><h2>完成の判断</h2><p>完了は、次の3点が揃った場合です。候補計算だけ、追加ボタンを押しただけ、ローカルの成功表示だけでは完了にしません。</p><ol><li>日次計画の問題番号と順序が固定されている。</li><li>QBセットを再読み込みし、全ページの問題番号・件数・順序・重複・欠落が計画と一致する。</li><li>照合後、Notionの候補ページにも同じQBセットのリンクが保存されている。</li></ol><p>候補0問の場合は、Notionの「候補なし」のページを確認して完了です。毎回の報告は「完了／途中」「対象日と件数」「QBとNotionのリンク」「本人の操作が必要ならその1点」に絞ります。</p></section>
-<footer><p>Claude公式情報の確認日：2026年10月29日。画面や提供範囲は更新されます。<a href="https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork">Cowork</a> ／ <a href="https://support.claude.com/en/articles/12012173-get-started-with-claude-in-chrome">Claude in Chrome</a>。</p><p><a href="manual.html">通常の導入手順に戻る</a></p></footer></main></body></html>
+<html lang="ja">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>QB Study Friend Claude用の手順</title><link rel="stylesheet" href="guide.css"></head>
+<body><main>
+<header><p class="label">QB STUDY FRIEND · CLAUDE DESKTOP</p><h1>Claudeに導入と復習セット作成を任せる</h1><p>1.1.0-preview</p>
+<p>復習候補はQB Study Friendが計算し、Claudeはアプリの操作、QBへの問題追加、保存結果の確認を担当します。自分で操作する場合は、<a href="manual.html">通常の導入手順</a>を使ってください。</p></header>
+<nav aria-label="目次"><ul><li><a href="#prepare">接続を準備する</a></li><li><a href="#install">導入を依頼する</a></li><li><a href="#daily">毎日の復習を依頼する</a></li><li><a href="#commands">コマンドから操作する</a></li><li><a href="#schedule">定期実行を設定する</a></li><li><a href="#scope">Claudeへ渡すもの</a></li><li><a href="#complete">完了時に確認すること</a></li></ul></nav>
+<section id="prepare"><h2>接続を準備する</h2>
+<p>Claudeから、このWindowsのファイルとChromeを操作できる接続が必要です。利用できるプランと設定方法は、<a href="https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork">Cowork</a>と<a href="https://support.claude.com/en/articles/12012173-get-started-with-claude-in-chrome">Claude in Chrome</a>の公式案内を確認してください。</p>
+<ol class="steps">
+<li>WindowsでClaudeデスクトップを開き、自分のアカウントへログインします。</li>
+<li>Chromeに公式のClaude in Chromeを導入し、Claudeデスクトップから利用できるよう接続します。QB記録用の拡張とは別の拡張です。</li>
+<li>ChromeでQBへログインします。パスワード入力や追加認証は自分で行ってください。</li>
+<li>配布ZIPを展開し、<code>docs</code> の手順をClaudeへ渡します。設定後の <code>data</code> フォルダーは渡さないでください。</li>
+<li>Claudeが対象のフォルダーとChromeを操作できることを確認します。ファイル操作が使えない場合は、<code>install.cmd</code> と <code>start.cmd</code> を自分でダブルクリックして起動できます。</li>
+</ol>
+<p>作業中はPC、Claudeデスクトップ、Chrome、記録サービスを起動しておきます。クラウド側で会話が動いていても、スリープ中のPCの画面やファイルは操作できません。</p></section>
+<section id="install"><h2>導入を依頼する</h2>
+<ol class="steps">
+<li><a href="CLAUDE_SETUP_PROMPT.txt">導入の依頼文</a>を読み、内容を確認してClaudeへ貼り付けます。<a href="manual.html">通常の導入手順</a>も渡してください。</li>
+<li>Claudeの案内に沿ってWindowsへ導入し、自分のNotionに専用ページと内部接続を作ります。</li>
+<li>接続キーを入力する段階ではClaudeの操作を止め、自分で操作画面の秘密入力欄へ貼り付けます。</li>
+<li>Notionに保存先が作成されたら、普段の学習で1〜2問解答します。</li>
+<li>Claudeに問題番号、選択記号、正誤、日時、件数を照合させ、PCとNotionに同じ記録があることを確認します。</li>
+</ol></section>
+<section id="daily"><h2>毎日の復習を依頼する</h2>
+<ol class="steps">
+<li><code>start.cmd</code> でQB Study Friendを起動します。</li>
+<li><a href="CLAUDE_DAILY_PROMPT.txt">日常運用の依頼文</a>をClaudeへ送ります。初回はこの手順も渡してください。</li>
+<li>Claudeが候補を計算し、QBに計画どおりのセットを作成します。中断した場合は、保存済みの計画と同じセットから再開します。</li>
+<li>QBセットの全件照合とNotionへのリンク保存が終わったら、報告されたリンクから復習を始めます。</li>
+</ol>
+<p>候補は最大100問です。問題数に応じてブラウザ操作の時間とClaudeの利用枠を使います。利用制限に達した場合も、途中のセットを消さずに再開してください。</p>
+<p>iPhone / iPadを併用する場合は、計算前に送信待ちがNotionへ届いていることを確認します。Windows画面の「PCに保存」の件数には、他の端末の解答は含まれません。</p></section>
+<section id="commands"><h2>コマンドから操作する</h2>
+<p>ClaudeがこのWindows上でコマンドを実行できる場合は、操作画面の代わりに <code>review.cmd</code> を使えます。先に <code>start.cmd</code> で記録サービスを起動してください。</p>
+<p>状態を確認するコマンドです。実行するフォルダーは任意です。</p>
+<p>Windows PowerShell：</p><pre><code>&amp; "$env:LOCALAPPDATA\QBStudyFriend\review.cmd" status</code></pre>
+<p>コマンドプロンプト：</p><pre><code>"%LOCALAPPDATA%\QBStudyFriend\review.cmd" status</code></pre>
+<p>記録件数、<code>review.day</code>（復習対象日）、準備済みなら <code>review.manifest</code>（セット名と問題番号）をJSON形式で返します。このコマンドは状態を読むだけで、QBやNotionには書き込みません。</p>
+<p>続く操作では、<code>YYYY-MM-DD</code> を <code>status</code> の <code>review.day</code> に置き換えます。</p>
+<table><thead><tr><th>引数</th><th>処理</th></tr></thead><tbody>
+<tr><td><code>prepare YYYY-MM-DD</code></td><td>候補を計算し、PCに計画、Notionに候補ページを保存します。同日計画があれば再利用します。</td></tr>
+<tr><td><code>begin YYYY-MM-DD</code></td><td>セット作成の開始をPCへ記録します。QBセット自体は作りません。返された <code>may_create</code> と既存セット情報を確認して、新規作成か再開かを判断します。</td></tr>
+<tr><td><code>remaining "C:\絶対パス\observed.json"</code></td><td>QBから読み取った途中の番号列が計画の先頭と一致するかを確認し、残りを返します。外部への書き込みはありません。</td></tr>
+<tr><td><code>register "C:\絶対パス\verified.json"</code></td><td>QBのURLと確認済み番号を照合し、PCに照合結果、Notionにセットリンクを保存します。QBへの問題追加は別途行います。</td></tr>
+</tbody></table>
+<p>入力JSONはWindowsの一時作業フォルダーへ作成します。次の説明部分を実際に確認した日付・番号・URLへ置き換えてください。</p>
+<p><code>remaining</code> 用：</p><pre><code>{"day":"対象日","ids":["QB上で確認した番号","次の番号"]}</code></pre>
+<p><code>register</code> 用：</p><pre><code>{"day":"対象日","url":"同じQBセットの検索画面URL","ids":"番号を改行で区切った文字列","confirmed":true}</code></pre>
+<p><code>confirmed</code> は、QB上の全件を確認したときだけ <code>true</code> にします。保存済み計画の転記では、QBへの登録は確認できません。登録後はNotionを開き直し、同じリンクが保存されていることを確認してください。</p>
+<p>接続キーはプログラムが内部で扱います。Claudeへ <code>session.json</code> やキーを渡す必要はありません。<code>data</code> や設定ファイルを直接書き換えず、このコマンドか操作画面を使ってください。</p></section>
+<section id="schedule"><h2>定期実行を設定する</h2>
+<p>まず、候補計算からQBセット作成、Notionのリンク確認までを手動で一度実行します。その後、利用中のClaudeに定期実行機能があれば設定できます。</p>
+<ol class="steps">
+<li>日常運用の依頼文を使い、実行する時刻とタイムゾーンを指定します。日本時間の午前4時より前は、前日分の復習として扱われます。</li>
+<li>保存された時刻、タイムゾーン、指示内容を管理画面で確認します。</li>
+<li>実行時刻にPC、Claudeデスクトップ、Chrome、記録サービスを利用できる状態にします。</li>
+<li>初回の予約実行後、QBセットとNotionのリンクを確認します。未完了なら、その日の保存済み計画から再開します。</li>
+</ol>
+<p>同日の確認を再実行するときも、同じ計画と同じセットを使います。<code>autostart-on.cmd</code> は記録サービスの起動設定であり、Claudeの定期実行とは別です。</p></section>
+<section id="scope"><h2>Claudeへ渡すもの</h2>
+<table><thead><tr><th>渡すもの</th><th>渡さないもの</th></tr></thead><tbody>
+<tr><td>導入手順、復習候補の問題番号、セット名、件数、URL、確認用コード</td><td>Notion接続キー、パスワード、Cookie、セッションファイル、設定後の <code>data</code> フォルダー</td></tr>
+<tr><td>QB画面でのセット作成、問題追加、番号照合の依頼</td><td>問題文、選択肢本文、解説、画像、解答の代行依頼</td></tr>
+</tbody></table>
+<p>操作結果が不明な場合は、保存先を開き直して確認してから続けます。OSやClaudeが操作を拒否した場合は、その操作と理由を確認してください。</p></section>
+<section id="complete"><h2>完了時に確認すること</h2>
+<ol>
+<li>復習対象日と計画の問題番号が確定している。</li>
+<li>QBセットの全ページを再読み込みし、番号、件数、順序、重複、欠落が計画と一致している。</li>
+<li>Notionの候補ページに同じQBセットのリンクが保存されている。</li>
+</ol>
+<p>候補0問の場合は、Notionの「候補なし」のページを確認します。途中で停止した場合は、保存済みセットのURLと再開位置を報告させてください。</p></section>
+<footer><p><a href="manual.html">通常の導入手順</a> ／ <a href="CLAUDE_SETUP_PROMPT.txt">導入の依頼文</a> ／ <a href="CLAUDE_DAILY_PROMPT.txt">日常運用の依頼文</a></p></footer>
+</main></body></html>

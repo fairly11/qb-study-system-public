@@ -1,79 +1,95 @@
-# Data contracts
+# コンポーネント間のデータ形式
 
-## 正本と互換性
+## 定義と検証
 
-TypeBox定義をTypeScript型とJSON Schemaの正本とし、Draft 2020-12 schemaを `packages/contracts/schemas/v1` に生成・コミットします。wire fieldは `snake_case`、原則として `additionalProperties: false` です。
+TypeBoxで定義したスキーマからTypeScript型とJSON Schemaを生成します。
+生成先は `packages/contracts/schemas/v1/` で、JSON Schema Draft 2020-12を使用します。
+フィールド名は `snake_case`、追加フィールドは原則拒否します。
 
-すべてのtop-level recordは次を持ちます。
+各形式の必須項目と許可する値は、生成済みJSON Schemaを参照してください。
+受信時には、`packages/contracts` の検証関数で日時や関連IDなどの意味上の制約も確認します。
+文字列の形式が合っていることだけでは、妥当な日付や整合した記録とは限りません。
 
-- `schema_version: "1"`
-- 固定値の `record_type`
-- record固有UUID
-- `provenance`: producer、producer version、source system、任意のsource record ID、recorded at
-- `quality`: acquisition method、temporal precision、state precision
+## 解答に関する形式
 
-許可する品質語彙は次のとおりです。
+| 形式 | 意味 |
+|---|---|
+| `AttemptEventV1` | 解答操作から取得した1回の解答。問題番号、時差付き解答日時、正誤、選択番号を持つ |
+| `HistorySnapshotV1` | 取得時点で確認した最終状態や集計回数。個々の解答の代わりには使わない |
+| `RecoveredAttemptV1` | 問題番号、日付、正誤を別の観測から確認した補完記録。選択番号は `null`、学習区分は未分類 |
+| `StudyContextV1` | `event_id` で解答に対応する学習区分。通常学習、復習、未分類のいずれか |
+| `StudyAttemptEnvelopeV1` | 解答と学習区分をまとめて渡す形式。両者の `event_id` 一致が必要 |
 
-- acquisition: `direct_capture | imported_baseline | derived | manual`
-- temporal: `exact | date_only | not_applicable`
-- state: `exact | final_state_only | not_applicable`
+`AttemptEventV1` と `HistorySnapshotV1` の相互変換は行いません。
+最終状態や合計回数から、架空の解答時刻や正誤の並びを作らないためです。
+補完記録も、直接取得した解答とは別の形式で保持します。
 
-外部から取得して永続化する識別子は、自由文の退避先にしません。`producer`、`producer_version`、`source_system`、任意の `source_record_id`、`question_group_id`、algorithm ID/versionは長さを制限し、`^[A-Za-z0-9][A-Za-z0-9@._:/+%#=~-]*$` に一致するsafe tokenだけを受け付けます。利用者が付ける `set_name` はこの制約の対象外ですが、QBコンテンツを入れてよいことを意味しません。
+`StudyContextV1` の `review_plan_id` は、学習区分が `review` の場合だけ指定できます。
+手動で復習を選んだ場合など、計画IDを持たない復習も表現できます。
 
-完全なrequired/optional制約は生成済みJSON Schemaが正です。本書は意味上の不変条件を定めます。
+## 状態・計画・実行結果
 
-生成Schemaのtimestamp `pattern` は字句形式とoffset上限を表し、calendar validityと「UTC正規化後も4桁yearに収まる」という演算を伴う制約は `format` の意味検証です。利用側は `packages/contracts` が公開するAjv validator、または同等のformat validatorを使用し、patternだけで受理判断してはいけません。
+| 形式 | 意味 |
+|---|---|
+| `QuestionStateV1` | 履歴から導出した問題ごとの状態。計算方式と版、計算時刻、証拠の充足度、次回復習日を持つ |
+| `ReviewPlanV1` / `ReviewPlanItemV1` | 対象日、順位付きの問題、選定理由を表す共有形式 |
+| `SetBuildRequestV1` / `SetBuildResultV1` | セット名、問題番号、試行指定と、問題ごとの処理結果 |
+| `SyncResultV1` | 将来のGoogle Sheets向け片方向同期の結果形式。Notion同期には流用しない |
+| `ErrorEnvelopeV1` | 発生元、定義済みエラーコード、再試行可否、関連する処理の識別子 |
 
-## 契約一覧
+セット作成結果の状態は `planned | succeeded | partial | blocked | failed` です。
+現在の日次復習エンジンは、モデル予測や除外理由を含む `DailyReviewPlan` を別に持ちます。
+定義は `packages/review-engine/src/types.ts` にあり、既存の共有V1形式を上書きしません。
 
-### AttemptEventV1
+## 記録元と品質
 
-確実に観測した1回の解答を表します。問題key、任意のgroup ID、offset付き `answered_at`、`correct | incorrect | unknown`、重複しない1始まりの選択番号を扱います。問題文や選択肢本文は扱いません。
+元の取得記録では、`provenance` に生成元、生成プログラムの版、元システム、記録日時などを保持します。
+`quality` は取得方法と日時・状態の精度を分けて表します。
 
-### HistorySnapshotV1
+| 項目 | 許可する値 |
+|---|---|
+| 取得方法 | `direct_capture`、`imported_baseline`、`derived`、`manual` |
+| 日時の精度 | `exact`、`date_only`、`not_applicable` |
+| 状態の精度 | `exact`、`final_state_only`、`not_applicable` |
 
-ある取込runで確認できた1問題の最終状態を表します。最終状態、任意の集計回数、および分かる場合だけ `last_attempted_at` または `last_attempted_on` を扱います。snapshotはattemptの代替ではなく、相互変換APIを設けません。
+これらの項目は、元の記録を区別するためのものです。
+学習区分だけを持つ `StudyContextV1` や、二つの記録を包む `StudyAttemptEnvelopeV1` には、同じ共通項目を要求しません。
 
-### QuestionStateV1
+生成元、版、元レコードID、問題グループID、計算方式IDには、長さと文字種を制限した識別子を使います。
+一般的な識別子は `^[A-Za-z0-9][A-Za-z0-9@._:/+%#=~-]*$` に適合する値だけを受け付けます。
+補完記録など、より狭い文字種を要求する形式もあります。
+識別子を自由文の保存先にはしません。
 
-review algorithmが証拠から導出したモデル中立の状態です。algorithm ID/version、計算時刻、evidence watermark、evidence sufficiency、nullableな次回復習日を持てる設計です。具体的な記憶モデルはV1で固定しません。
+## 日時
 
-### ReviewPlanV1 / ReviewPlanItemV1
+時刻が分かる値と、日付だけが分かる値を分けます。
 
-`Asia/Tokyo` の対象日と、順位付きの問題項目を表します。生成algorithmと各項目の安全な選定理由を記録します。問題内容は含めません。
+- 瞬間を表す日時は、時差付きのISO 8601入力を受け付け、保存時にはUTCの `Z` 形式へ正規化します。
+- 時差の範囲は `-14:00`〜`+14:00`。絶対値14時間では分を `00` に限定します。
+- 年は先発グレゴリオ暦の4桁 `0000`〜`9999` とし、UTC正規化後も範囲内に収まる必要があります。
+- 小数秒は省略または1〜3桁を受け付け、保存値はミリ秒3桁にそろえます。範囲外の値を丸めて受理しません。
+- 時差を持たない日時は拒否します。
+- 日付だけの値は `YYYY-MM-DD` と `Asia/Tokyo` の組として扱い、午前0時などの架空の解答時刻へ変換しません。
 
-### SetBuildRequestV1 / SetBuildResultV1
+JSON Schemaの `pattern` だけでなく、`format` の検証も必要です。
+存在しない日付や、正規化後に年の範囲を超える日時は、字句検査だけでは判定できません。
 
-requestはset名、正規化済みquestion key、任意のreview plan ID、dry-run指定を表します。resultはrun全体の状態と、問題key単位の安全な結果を表します。状態語彙は `planned | succeeded | partial | blocked | failed` です。
+## 問題番号と連問
 
-### SyncResultV1
+問題番号の正規形は、`119A12` のような「回数 + 1英字 + 問題番号」です。
+全角文字をNFKCで正規化し、英字を大文字にそろえます。
+回数・英字間と英字・問題番号間では、単一の空白、または前後に単一空白を伴うハイフンを許可します。
+タブ、改行、連続空白、連続ハイフン、前後の余白は拒否します。
+`11565` のように英字がない値は推測で補正しません。
 
-SQLiteからGoogle Sheetsへの将来の片方向同期結果と件数を表します。SheetsからSQLiteへデータを取り込む意味は持ちません。
+連問の `question_group_id` は問題番号と別に保持します。
+連番や出題順からグループを推定しません。
 
-### ErrorEnvelopeV1
+## 数値と互換性
 
-component、安定したerror code、retryable、correlation ID、およびallowlist化した安全な識別子だけを表します。任意payload、stack、秘密、QBコンテンツを運ぶ用途には使いません。
+整数の件数、位置、番号には、各項目の下限と `Number.MAX_SAFE_INTEGER`（9007199254740991）の上限を適用します。
+JavaScriptで正確に表せない値は丸めずに拒否します。
 
-## 時刻
-
-- 瞬間はtimezone offsetを含むISO 8601入力だけを受け、UTC `Z` に正規化します。numeric offsetは `-14:00` から `+14:00` までで、絶対値14時間では分を `00` に限定します。yearはproleptic Gregorian calendarの4桁 `0000`〜`9999` とし、UTC正規化後もこの範囲に収まる入力だけを受け付けます。小数秒は省略または1〜3桁（最大ミリ秒精度）だけを受け付け、範囲外へ正規化される値、範囲外offset、4桁以上の小数秒は丸めずに拒否します。canonicalな保存値は常に3桁のミリ秒を持つUTC `Z` 形式で、同じV1契約へ再入力できます。
-- offsetのないlocal datetimeは拒否します。
-- date-onlyは4桁yearのproleptic Gregorian `YYYY-MM-DD` と `Asia/Tokyo` の組として解釈します。
-- date-onlyから午前0時のinstantを作りません。
-
-## 問題識別子
-
-正規形は `119A12` のような「回数 + 1英字 + 問題番号」です。NFKCと大文字化の後、回数・英字間および英字・問題番号間に限り、単一ASCII空白、または前後に単一ASCII空白を伴える単一ハイフンを区切りとして許可します。tab、改行、連続空白、連続ハイフン、先頭・末尾空白、その他の区切りは拒否します。`11565` のように英字を欠く値や余分な記号は推測補正しません。
-
-連問では `question_group_id` と `question_key` を別々に保持します。連番、時刻、出題順からgroupを推定しません。
-
-## 数値境界
-
-JSONとJavaScript間で整数精度を失わないよう、すべての整数counter、index、count、positionはそれぞれの下限に加え `Number.MAX_SAFE_INTEGER`（`9007199254740991`）を上限とします。上限を超える入力は丸めずにschema validationで拒否します。
-
-## 進化ルール
-
-- V1のrequired field削除、意味変更、enum narrowing、field名変更をしません。
-- 破壊的変更はV2 schemaと移行方針を追加します。
-- schema生成差分、Ajv strict compile、valid/invalid fixtureをCI相当の `verify` で確認します。
-- 契約に影響する未決事項は推測で埋めず、ADRがacceptedになるまで未解決として残します。
+V1の必須項目の削除、意味変更、許可値の縮小、フィールド名変更は行いません。
+破壊的変更には新しい版と移行方針を追加します。
+スキーマ再生成、厳密な検証設定、正常・異常な入力例のテストを `pnpm verify` で確認します。

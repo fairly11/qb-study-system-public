@@ -1,44 +1,48 @@
-# Notion synchronization storage
+# Notion同期状態の保存
 
-`@qb-study/storage/notion-sync` opens the same local database as the history
-collector. It does not access Notion or change `AttemptEventV1`.
+`@qb-study/storage/notion-sync` は、収集サービスと同じSQLiteに同期状態を保存します。
+Notionとの通信は呼び出し側が担当し、このパッケージは保存対象の選択、作成前の記録、照合結果、同時実行の制御を提供します。
 
-Call `activateTarget(target)` before synchronizing. The first call records the
-current maximum attempt row ID, so existing history is excluded by default.
-Passing `true` as the second argument includes existing history
-only on the first activation. Subsequent calls never move that boundary.
-Use a stable target identifier derived from both destination data source IDs.
+## 同期対象の開始位置
 
-`listAttemptsForTarget` returns eligible attempts in insertion order and verifies
-their V1 shape and stored checksum. With no limit it returns every eligible
-attempt, including confirmed entries that may need periodic reconciliation.
-A caller using a limit must provide its own progression strategy; repeatedly
-requesting the same prefix does not advance a cursor.
+同期前に `activateTarget(target)` を呼びます。
+初回呼び出し時の最大解答行IDを開始位置として保存し、既存の履歴は同期対象から除外します。
+初回に限り、第二引数を `true` にすると既存の履歴も対象になります。
+以後の呼び出しでは開始位置を動かしません。
+`target` には、二つの保存先データソースIDから導出した固定識別子を使います。
 
-Before a remote create request, call `beginCreate`. Its conditional insert checks
-the current lease owner and expiry together with the latest resource state in
-one SQLite transaction. It returns true only when that state is absent or is a
-retry whose waiting period has elapsed, and appends `creating` with the code
-`NOTION_CREATE_UNCONFIRMED`. False means no request may be sent. After a crash,
-that state means the remote outcome is uncertain and must be reconciled; it is
-not permission to create again. Append `confirmed` only after verifying the
-remote page and supplying its page ID. The storage records outcomes but does
-not infer whether a remote operation succeeded. Ordinary `appendState`
-allows further evidence, including a known page ID while still `creating`;
-initial create intent must use `beginCreate`. `getState` returns the latest
-journal entry for one resource.
+`listAttemptsForTarget` は、対象の解答を挿入順に返し、V1形式と保存時のチェックサムを検証します。
+件数を指定しなければ、再照合に必要な確認済みの解答も含めてすべて返します。
+件数を制限する呼び出し側は、次に読む位置を管理してください。
+同じ先頭部分の取得を繰り返すだけでは読み取りは進みません。
 
-Journal entries and activation boundaries are protected by update/delete
-triggers. The lease table is deliberately mutable operational coordination,
-separate from answer evidence. Acquiring a lease is an atomic SQLite operation;
-the same owner renews it, and another owner can acquire it only after expiry.
-The caller must renew and confirm ownership before remote effects, re-read the
-latest resource state, and stop if it loses ownership. Expiring leases cannot
-fence a request already sent to Notion or coordinate different Macs. Notion
-reconciliation and conservative handling of ambiguous creates remain required.
+## 作成前の記録と結果の照合
 
-Each sync connection uses `synchronous=FULL` before writing create intent. Local
-collector connections also use `FULL` so an acknowledgement follows the stronger
-SQLite WAL durability boundary. Hardware, filesystem, and backup behavior remain
-outside this guarantee. Database files must stay outside cloud-synchronized
-folders. No runtime credentials or remote payloads are stored in the journal.
+Notionへ作成要求を送る前に `beginCreate` を呼びます。
+この処理は、実行権の所有者と有効期限、最新の同期状態を一つのトランザクションで確認します。
+未作成、または再試行の待機時間が過ぎた場合だけ `creating` を追記し、`true` を返します。
+`false` の場合は送信しません。
+
+作成後の応答が失われたりプログラムが停止したりすると、`creating` と `NOTION_CREATE_UNCONFIRMED` が残ります。
+この状態では保存先を読み戻して照合し、無条件に作成を繰り返さないでください。
+Notion側の内容を確認してから、ページIDとともに `confirmed` を追記します。
+
+- 最初の作成予定は `beginCreate` で記録します。
+- `appendState` は、その後の状態や判明したページIDを追記します。
+- `getState` は、一つの記録に対する最新の同期状態を返します。
+
+## 同時実行と永続化
+
+同期履歴と対象の開始位置は、更新・削除を拒否するSQLiteのトリガーで保護しています。
+実行権を管理するテーブルだけは更新可能です。
+同じ所有者は有効期限を延長でき、別の所有者が取得できるのは期限が切れた後です。
+
+呼び出し側は送信前に実行権を更新し、最新の同期状態を再取得します。
+実行権を失った場合は停止してください。
+期限付きの実行権では、既にNotionへ送った要求を取り消したり、別のPCの処理まで排他制御したりできません。
+保存先の照合は別途必要です。
+
+作成予定を書き込む接続と収集サービスの接続は、SQLiteの `synchronous=FULL` を使用します。
+これは書き込みの確定を待つ設定ですが、記憶装置の故障やバックアップまで保証するものではありません。
+SQLiteファイルはクラウド同期フォルダの外に置き、PC間で共有しないでください。
+同期履歴には認証情報やNotionの応答全体を保存しません。

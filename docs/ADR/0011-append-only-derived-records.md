@@ -1,18 +1,23 @@
-# ADR-0011: 派生状態と追記専用実行記録の分離
+# ADR-0011: 計算の現在値と過去の計画・実行記録を分離する
 
-- Status: Accepted
-- Date: 2026-08-24
+- 状態: 採用
+- 決定日: 2026-08-24
 
-## Context
+## 背景
 
-復習計算の現在値と、生成済みplan・外部処理run・監査logでは更新の意味が異なります。現在値は再計算で置き換える必要がありますが、過去の計画や実行結果を上書きすると監査可能性が失われます。
+問題ごとの記憶状態は、解答が増えるたびに再計算する。
+一方、過去の復習計画や同期結果を上書きすると、どの情報から何を実行したかを確認できなくなる。
 
-## Decision
+## 決定
 
-`question_states` はquestionごとの派生した現在値としてupsert可能にします。`review_plans`、`review_plan_items`、`review_plan_item_reasons`、`set_creation_runs`、`sync_runs`、`system_logs`、`system_log_counters` は追記専用とし、DB triggerでUPDATE/DELETEを拒否します。
+`question_states` は問題ごとの現在値として、追加または更新する。
+`review_plans`、`review_plan_items`、`review_plan_item_reasons`、`set_creation_runs`、`sync_runs`、`system_logs`、`system_log_counters` は追記専用とし、データベースのトリガーで `UPDATE` と `DELETE` を拒否する。
 
-review planとそのitems/reasonsは1 transactionで追加します。set/sync runは終了状態が確定してから1行を追加し、途中経過は構造化logとして追記します。再試行時は既存行を変更せず新しいrun IDを発行します。
+復習計画と、その問題一覧・選定理由は一つのトランザクションで保存する。
+セット作成と同期の実行結果は、終了状態が確定してから一行を追加する。
+途中経過は構造化ログへ追記し、再試行には新しい実行IDを発行する。
 
-## Consequences
+## 影響
 
-再計算された現在状態を効率よく保存しながら、計画・実行・監査履歴を改変せず保持できます。将来のwriter APIはplan一式のtransactional insertとterminal run insertを提供し、これらのtableへ汎用update APIを公開してはいけません。
+現在の記憶状態を更新しても、過去の計画と実行記録は残る。
+保存APIは計画一式の追加と終了結果の追加を提供し、追記専用テーブルを任意に更新するAPIは設けない。

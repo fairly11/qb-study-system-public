@@ -1,18 +1,31 @@
-# ADR-0006: UTC瞬間とAsia/Tokyo暦日
+# ADR-0006: 時刻はUTC、日付はAsia/Tokyoで扱う
 
-- Status: Accepted
-- Date: 2026-08-24
+- 状態: 採用
+- 決定日: 2026-08-24
 
-## Context
+## 背景
 
-演習時刻と復習対象日は性質が異なり、offsetなし日時やdate-onlyの午前0時化は曖昧さを生みます。
+解答した時刻と、復習する日付では必要な精度が異なる。
+タイムゾーンのない日時や、日付だけの記録に付けた午前0時を使うと、実際には分からない時刻で計算してしまう。
 
-## Decision
+## 決定
 
-exactな瞬間はoffset必須のISO 8601として入力し、保存時にUTC `Z` へ正規化します。numeric offsetは `-14:00` から `+14:00` までとし、絶対値が14時間の場合は分を `00` に限定します。yearは4桁の `0000`〜`9999` をproleptic Gregorian calendarとして扱い、UTC正規化後も同じ4桁year範囲に収まる入力だけを受け付けます。canonical storage precisionはJavaScriptが正確に扱えるミリ秒とし、入力の小数秒は省略または1〜3桁だけを許可します。範囲外へ正規化される値や4桁以上の小数秒は黙って切り捨てたり丸めたりせず、schema validatorとnormalizerの両方で拒否します。正規化後は常に3桁のミリ秒を含むUTC形式です。日だけ分かる値も4桁yearのproleptic Gregorian `YYYY-MM-DD` として `Asia/Tokyo` のまま保持します。利用者の標準タイムゾーンを `Asia/Tokyo` とします。
+時刻はUTCからの時差を含むISO 8601形式で受け取り、保存時にUTCを示す `Z` へ統一する。
+入力と保存には次の制約を設ける。
 
-JSONとJavaScript間の数値精度も同じくfail closedで扱います。すべての整数counter、index、count、positionは下限に加えて `Number.MAX_SAFE_INTEGER`（`9007199254740991`）を上限とし、超過値を丸めずに拒否します。
+- 時差は `-14:00` から `+14:00`。絶対値が14時間の場合、分は `00` のみとする。
+- 年は `0000`〜`9999` の4桁とし、全期間にグレゴリオ暦を適用する。UTCへの変換後もこの範囲に収まる入力だけを受け付ける。
+- 小数秒は省略または1〜3桁。保存形式は常にミリ秒3桁を含むUTC形式とする。
+- 範囲外の値や4桁以上の小数秒は、丸めずに拒否する。
 
-## Consequences
+日付だけ分かる記録は `YYYY-MM-DD` と `Asia/Tokyo` を保持し、時刻に変換しない。
+標準タイムゾーンは `Asia/Tokyo` とする。
 
-UTC 15:00の日付境界、最大offset、西暦0000〜0099、正規化後のyear範囲、小数秒1〜3桁の正規化、範囲外offsetと4桁以上の小数秒の拒否、すべての整数schemaの安全上限を明示的にテストします。受理したcanonical timestampは同じ契約へ再入力できなければなりません。UTC変換を伴うyear境界はJSON Schemaのpatternだけでは判定せず、共通contract packageのformat validatorを利用します。date-onlyから架空のinstantを生成せず、instantとlocal dateを別fieldで扱う必要があります。
+件数、添字、順位などの整数にも、JavaScriptが正確に扱える上限 `Number.MAX_SAFE_INTEGER`（`9007199254740991`）を設ける。
+各項目の下限と上限を超える値は、丸めずに拒否する。
+
+## 検証
+
+日本時間の日付が変わるUTC 15:00、時差の上限、年の境界、小数秒、整数上限をテストする。
+正規化して保存した時刻は、同じデータ契約へ再入力できる形式にする。
+UTC変換後の年の範囲は正規表現だけで判定せず、共通契約パッケージの検証関数で確認する。

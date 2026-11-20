@@ -137,35 +137,27 @@ def main():
         'powershell_scope': 'syntax and portable validation; no Windows installer or ACL execution',
         'windows_device_tested': False, 'live_friend_notion_tested': False, 'live_friend_qb_tested': False,
         'html_links_checked': True, 'html_visual_inspection': False,
-        'html_visual_inspection_note': 'Browser capability disabled in this development session.',
+        'html_visual_inspection_note': 'Rendered HTML appearance has not been checked.',
     }
     release_path.write_text(json.dumps(release, ensure_ascii=False, indent=2) + '\n')
-    validation = '''QB Study Friend 1.1.0-preview 検証記録（2026年10月29日）
+    validation = '''QB Study Friend 1.1.0-preview 検証の範囲
 
-【完了した検証】
-Macの開発環境で、共通プログラムのコード検査・型検査・ビルドと727件のテストが成功しました。
-生成されたWindows配布版について34件のテストが成功しました。
-・Chrome/Safariの記録、ページをまたぐ履歴の読取、重複の抑制
-・通常学習／復習／未分類、復習実施数の条件
-・翌04:00の境界、最大100問、同日計画の固定
-・新規設定と既存設定の保持、設定失敗時のエラー保持
-・秘密を出力しないClaude用コマンド、確認済みの番号による登録、途中再開
-・記録を保存後に終了し、再起動しても履歴を保持する動作
-PowerShell（Windowsの導入・起動用スクリプト）には13件の構文・ファイル整合性検査を行いました。
-公式Node.jsのWindows x64/ARM64の配布ハッシュと、同梱の固定値は一致しています。
-ZIP内の全ファイルをチェックサムで照合し、文書内のローカルリンク、秘密の接続キーの形式、
-開発者個人のフォルダー・端末名・学習データの混入を検査しました。
+【自動テスト】
+検査項目と成功件数は RELEASE.json の verification.automated_checks を参照してください。
+記録と同期は合成データ、模擬Notion応答、一時的な保存先を使って検査します。
+対象には、再送時の重複防止、学習区分、復習対象日の境界、同日計画の固定、
+初期設定の再開、コマンド操作、記録を保持したままの終了が含まれます。
+PowerShell検査は構文と配布ファイルを対象とします。
 
-【未実施】
-Windows 11実機でのインストール、アクセス権、実際のChromeでの記録、本人のQB/Notionへの送信。
-Claude Desktopからの実操作と予約実行。iPhoneアプリの配布・本人端末での接続確認。
-説明書のブラウザ表示の目視確認（開発環境のブラウザ操作機能が無効のため）。
-PowerShell検査はMac上の公式実行環境で行っており、Windowsの設定は変更していません。
+【未検証】
+Windows 11実機でのインストールとアクセス権。
+実際のChromeでの解答記録とNotionへの同期。
+Claudeデスクトップからの操作と定期実行。
+HTML説明書の表示。
 
-【受領者による最初の確認】
-docs/manual.html に沿って自分のNotionへ接続し、普段の学習で1〜2問解答します。
-PCとNotionの問題番号・正誤・選択記号・日時が一致するまで、導入完了とは扱いません。
-iPhoneアプリはこのZIPに含みません。既存インストールの自動更新も含みません。
+【導入後の確認】
+docs/manual.html に従ってNotionへ接続し、普段の学習で1〜2問解答します。
+PCとNotionの問題番号、正誤、選択記号、日時が一致することを確認してください。
 '''
     (root / 'docs/Validation-ja.txt').write_text(validation, encoding='utf-8-sig')
     files = inventory(root)

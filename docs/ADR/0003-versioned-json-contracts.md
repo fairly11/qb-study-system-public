@@ -1,16 +1,20 @@
 # ADR-0003: バージョン付きJSON契約
 
-- Status: Accepted
-- Date: 2026-08-24
+- 状態: 採用
+- 決定日: 2026-08-24
 
-## Context
+## 背景
 
-別々に開発されるコンポーネント間で、TypeScriptのcompile時だけでなく実行時にも入力を検証する必要があります。
+別々に動作するコンポーネント間では、TypeScriptの型検査だけでなく、実際に受け取ったデータの検証も必要になる。
 
-## Decision
+## 決定
 
-TypeBoxを型とschemaの正本とし、JSON Schema Draft 2020-12を生成・commitします。全recordは `schema_version` と固定 `record_type` を持ち、wire fieldはsnake_case、原則 `additionalProperties: false` とします。Ajv strict modeで検証します。
+TypeBoxを型とスキーマの定義元とし、JSON Schema Draft 2020-12形式のファイルを生成してGitで管理する。
+全レコードに `schema_version` と固定の `record_type` を持たせる。
+通信するJSONの項目名はsnake_caseとし、原則として `additionalProperties: false` で未定義の項目を拒否する。
+実行時の検証にはAjvのstrict modeを使用する。
 
-## Consequences
+## 影響
 
-schemaの生成差分を検出できます。V1公開後の破壊的変更は既存schemaを編集せずV2追加とし、移行方針が必要です。
+型定義と生成済みスキーマの不一致を検査できる。
+既存の利用側が読めなくなる変更は、V1の上書きではなくV2の追加として行い、移行手順を定める。

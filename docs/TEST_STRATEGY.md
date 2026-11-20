@@ -1,158 +1,74 @@
-# Test strategy
+# テスト方針
 
-## 原則
+## 検証すること
 
-テストは、証拠の意味、契約互換性、追記専用性、時刻境界、安全境界を優先します。実QBサイト、Google Sheets、認証サービスには接続しません。QB pageの検証は、問題文、選択肢本文、解説、画像を含まない合成HTML fixtureとmock Chrome APIだけで完結させます。
+解答の記録、再送、同期、復習候補の計算を、合成データと一時的な保存先で検証します。
+外部通信は模擬応答に置き換え、通常のテストではQBや本番Notionへアクセスしません。
+QBの画面は問題本文を含まないHTMLで再現します。
 
-## 必須テスト群
+## データ形式と保存
 
-### Question normalizer
+| 対象 | 主な確認事項 | テストの場所 |
+|---|---|---|
+| 問題番号 | 全角・小文字・許可した区切りの正規化、曖昧な入力の拒否 | `packages/question-normalizer/test/` |
+| データ契約 | 型とJSON Schemaの一致、追加項目や不正値の拒否、異なる記録形式の区別 | `packages/contracts/test/` |
+| 時刻 | 時差付き日時のUTC正規化、日本時間の日付境界、日付だけの値の保持 | `packages/contracts/test/` |
+| SQLite | 空DBからの更新、再実行、更新ファイルの改変検出、失敗時の取り消し | `packages/storage/test/` |
+| 重複と競合 | 同じIDの再送は重複、同じIDで異なる内容は競合、正当な解き直しは別記録 | `packages/storage/test/` |
 
-- `119A12`、`119-A-12`、`119 A 12`、`１１９Ａ１２` が同じ正規形になる
-- lowercaseや全角の許可表記を正規化する
-- `11565`、複数英字、余分な記号、空文字を `invalid_format` として拒否する
-- question keyからgroup IDを推定しない
+解答、選択番号などの元記録は、保存後の更新・削除を拒否することも確認します。
+生成されたスキーマとリポジトリのスキーマに差分がないかは、ビルド時に検査します。
 
-### JSON Schema
+## Chrome拡張
 
-- すべてのV1 schemaがAjv strict modeでcompileできる
-- `$id` が一意である
-- valid fixtureを受理し、invalid fixtureと追加fieldを拒否する
-- schema再生成結果とcommit済みschemaに差分がない
-- AttemptEventとHistorySnapshotを相互に拒否する
-- `@ts-expect-error` fixtureで型レベルでも両者を混同できない
+`apps/browser-extension/test/` では、模擬Chrome APIと合成画面を使います。
 
-### SQLite
+- 問題画面への移動で記録を開始し、ページ内移動、連続解答、退出と再入場に追従する。
+- 古い文書や別フレームの通知を拒否し、遅れた応答で現在の演習状態を上書きしない。
+- 実解答と結果画面の再表示を区別し、同じ結果の再描画で重複記録を作らない。
+- 問題番号、選択状態、正誤の表示が不明確なら記録しない。
+- 通常学習、確認済みの復習、分類待ちを区別し、手動選択は以後の解答だけに適用する。
+- 保存完了の応答を得るまで送信待ちを保持し、停止・再起動後も同じIDで再送する。
+- 記録画面の表示件数上限を、解答の取得件数上限にしない。
 
-- 空DBからlatestまでmigrationできる
-- 再実行がno-opである
-- 適用済みmigrationのchecksum変更と番号欠落を拒否する
-- migration途中の失敗をrollbackする
-- 必須table、index、triggerが存在する
-- attemptsと選択番号のUPDATE/DELETEを拒否する
+権限と配布物の構成は `tests/structure.test.ts` と拡張内の構成テストで検査します。
+拡張からQBをクリック・書き換えする処理や、問題本文の保存項目が入らないことも検査対象です。
 
-### Idempotency
+## 収集サービスとNotion同期
 
-- 同一event ID・同一安全fieldの再送は `duplicate`
-- 同一source record IDの再送を重複として扱う
-- 同じidempotency keyで内容が異なる場合は `IDEMPOTENCY_CONFLICT`
-- 別event IDで同一内容の正当な反復解答を統合しない
+`services/history-collector/test/` と `packages/storage/test/` で次を確認します。
 
-### Time zone
+- 収集サービスが同じPCの `127.0.0.1` だけで待ち受け、不正な送信先、ヘッダー、本文、データ形式を拒否する。
+- SQLiteへの保存が確定した後にだけ、受け取ったイベントIDの保存完了を返す。
+- 同じIDの再送で行を増やさず、内容が異なる場合は元記録を保持して拒否する。
+- Notionの列構造と関連先を確認し、作成後の読み戻しが一致してから同期済みにする。
+- 作成応答の喪失、送信制限、再起動、権限不足、内容の競合を区別する。
+- 未確認の作成を無条件に繰り返さず、同期開始前の記録を意図せず取り込まない。
+- SafariとChromeの記録を同じ履歴として読み取る。
 
-- `14:59:59.999Z` と `15:00:00.000Z` がAsia/Tokyoで別日になる
-- offset付きinstantを同じUTC瞬間として扱う
-- offsetなしdatetimeを拒否する
-- date-onlyに架空のinstantを生成しない
+## 復習計画とセット照合
 
-### Extension manifestと配布境界
+`packages/review-engine/test/`、`apps/set-builder/test/`、収集サービスの復習関連テストで確認します。
 
-- manifest versionが3、`minimum_chrome_version`が127である
-- API permissionが `alarms` と `storage` だけで、`tabs`、`webNavigation`、`activeTab`、`scripting`、cookie、webRequestを持たない
-- `host_permissions` が `http://127.0.0.1/*` だけで、QB domain、localhost hostname、`<all_urls>` を含まない
-- static content scriptが `https://qb.medilink-study.com:443/quiz` と `https://qb.medilink-study.com:443/quiz?*`、`document_start`、top frame only、`ISOLATED` worldに限定され、about/related frame fallbackを無効にする
-- background、popup、content scriptの配布bundleがIIFEで自己完結し、ESM import、source map、`eval`、`new Function`、remote hosted codeを含まない
-- 配布content scriptがsynthetic fixture selectorを含まず、synthetic adapterをproduction entrypointから到達不能にする
-- capture pathにclick、submit、dispatch、navigation、DOM write、rating/note/bookmark/set変更がない
+- 記憶モデルの入力と元の正誤を分け、未来の解答や不明な時刻を計算へ混ぜない。
+- 日本時間04:00の日次境界、手動期日、停止、当日正解、回数上限を反映する。
+- 第116回〜第120回の範囲と第120回の優先補正を守り、保存済み計画の再現では元の規則を使う。
+- 候補の件数と分野配分を制御し、選定・除外理由を保存する。
+- 同日再実行で計画を作り直さず、ブラウザで確認した登録済み部分から再開する。
+- 問題セットの欠落、余分な問題、重複、順序違いを検出する。
+- 通常学習と復習、解答回数と問題の種類数を分けて進捗を数える。
 
-### Document単位の同意
+## iPhone・iPadとWindows
 
-- exact origin `https://qb.medilink-study.com`、exact pathname `/quiz`、top frameのdocumentだけがREADY登録される
-- content bootstrapは同意前にQB DOMをqueryせず、capture `MutationObserver`、candidate、outbox、collector処理を開始しない
-- workerの一時的なunavailable応答後も同じpage-session IDでREADYを再通知し、その間adapterとMutationObserverを開始しない
-- activeな新規documentでは `chrome.action.openPopup()` を1回だけ試行し、同一READY再送で重複提示しない
-- background tabでは提示せず、そのexact tabがactiveになった時だけdocumentのcurrent性をprobeして提示する
-- popup試行途中にtarget tabがinactiveになった場合はwindowへpopupを開かず、状態をpendingへ戻す
-- popup自動提示のAPI欠落・reject時はcaptureを開始せず、tab固有の `!` badgeと `QB記録: 記録開始の確認が必要` titleを表示する
-- staleまたは到達不能なdocumentはephemeral sessionを破棄してbadge/titleを消し、captureを開始しない
-- workerのcapture core準備後にcontent scriptへのstart指示が失敗した場合はcaptureを開始せず、tab固有のbadge/titleで手動確認を促す
-- popupを閉じてdecision messageを送らない場合は、同意も拒否も記録せずcaptureを開始しない
-- 「今回は記録しない」はそのdocumentをdeclinedにし、自動再提示せず、captureを開始しない
-- declined後も同じactive/current documentに対する手動「記録を開始」は許可する
-- start command成功前、start失敗後、および異なるdocument/tab/frame/origin/path senderからのcapture messageを拒否する
-- `documentId`がある場合はそれを優先し、ない場合もgenerated page-session IDでstale documentを拒否する
-- `loading`と`complete`の両方で、その時点の保存sessionをexact documentへprobeして照合する
-- 同じdocumentが応答する場合は同意、observing、自動popup済み状態を保持し、popupを再表示しない
-- probe不能、対象外location、またはverified different documentではfail closedでephemeral consentを消去する
-- READYの後に遅延したtab更新が来る順序でも、tab更新の後にREADYが来る順序でも、新documentのsessionを誤消去しない
-- tab closeとtab replacementではprobe結果にかかわらずephemeral consentを無条件に消去する
-- consent stateを `storage.session`、outboxを `storage.local` に分離し、両方のaccess levelを `TRUSTED_CONTEXTS` にする
-- badge/titleおよびconsent storageにquestion key、option index、URL、DOM text、credentialを含めない
-- popup status/history取得をextension pageだけに許可し、content senderを拒否する
-- popupの直近記録はoutboxと送信済みcacheを統合し、answered-at降順、表示のみ最大99件とする
-- popupへ返す各記録をquestion key、answered-at、result、selected indices、delivery stateのexact fieldに限定し、event ID、provenance、正答index、URL、HTML、自由形式payloadを拒否する
-- storage read失敗を空履歴と表示せず、`storage_state_blocked` と読み取り不能表示にする
-- 旧popup-triggered capture版の診断codeを含むstateも復元し、既存outboxを読み取り不能にしない
-- popup command成功後のstatus再取得が失敗した場合、古い成功codeで再取得errorを上書きしない
+Safariの取得と転送は `apps/ios-safari/test/`、Swiftの保存と同期は `apps/ios-safari/native/Tests/` で検証します。
+拡張内の保存、共有SQLiteへの転送、Notionへの同期の各段階で、確認前の記録を失わないことを確認します。
+シミュレータ向けビルドでは、アプリとSafari拡張をまとめてコンパイルします。
 
-### Production QB adapterとcapture
+Windowsの配布用テストは `apps/windows-recorder/test/` と `apps/windows-friend/test/` にあります。
+配布構成を生成してから、起動・停止、接続設定、保存、再送、画面との通信を検証します。
+Windows上のアクセス権はPowerShellの専用テストで確認します。
 
-- 観察済みfixture上でquestion keyのdirect textだけを正規化し、question cardをexact 1件、cardを含むreview済みroot祖先をexact 2件要求して近い方をfunctional rootとして選ぶ
-- 外側layout wrapperだけにあるresult markerは現在の問題の証拠にせず、最寄りrootの外からresolved状態を生成しない
-- 内側rootのclass driftまたは追加matching ancestorでroot祖先数が変わった場合は外側へfallbackせずUnsupportedにする
-- optionはquestion card内の `button.text-left` がexact 5件の場合だけDOM順を1始まりindexへ対応させる
-- selected markerは `border-qb-green` と `text-qb-green` の両方が一致するbuttonだけを受理する
-- result marker出現後、card内の全 `bg-qb-sky` を、tagとclass token集合が完全一致するcorrect badge、または観察済みのexact三段pathにあるprogress fillへ分類する。progress fillを各optionにexact 1件要求し、未知要素、class追加・欠落、wrong tag、欠落、重複、path driftをUnsupportedにする
-- selected集合が空なら全sky要素の分類後に1件以上のexact correct badgeの存在だけを確認して `resolved_without_selection` とし、正答index集合を導出しない。progress fillだけのDOMはcorrect marker missingとして拒否する
-- selected集合が非空の場合だけ、各exact correct badgeがoptionのdirect first childであり、欠落・重複・不正配置がないことを確認して比較する
-- correct markerを全件走査し、marker自身がoption、option祖先0件、option祖先複数、同一optionへの重複を拒否したうえで、全markerがdistinctなreview済みoptionへ一意対応するがpositionだけ未reviewの場合を単一の有限codeで示す。正答indexやDOM内容は診断へ含めず、この段階ではUnsupportedのままとする
-- 同一optionへ複数markerが対応する場合も後続markerを最後まで検査し、option要素単位で重複除去した集合とselected option要素集合の関係を、一致、strict superset、strict subset、disjoint、同数partial overlap、異数partial overlapの排他的な有限codeで示す。correct option index、marker件数、DOM内容を返さず、全codeをUnsupportedのままとする。旧generic differs codeは保存済みstateの復元互換用にだけ残し、新規runtimeでは生成しない
-- selected集合と一時的なcorrect集合の一致から `correct`、不一致から `incorrect` を生成する
-- correct option indexをadapterのresolved observation、candidate、`AttemptEventV1`、outbox、logへ露出しない
-- 初期resolved DOMは送信せず、同意後にpendingを観測してから同じquestion keyがresolvedへ遷移した場合だけ1件生成する
-- `resolved_without_selection` はterminalとして同一questionの後続再描画を抑止するが、AttemptEventを生成しない
-- `resolved_without_selection` ではevent IDと時刻を生成せず、real BackgroundCoreのoutbox、delivered event、collector requestがすべて0件のままである
-- DOM再描画、同一result marker再挿入、MutationObserverの重複通知で同じeventを二重生成しない
-- 100問を超えるdistinct question keyのpending-to-resolved反復を同一controllerで処理し、人工的な問題数上限なしに各問1件を生成する
-- question key切替、main/cardの欠落・曖昧、root祖先数の不一致、option/markerの欠落・不整合、想定外locationはUnsupportedとなりeventを送らない
-- Unsupportedの具体的理由を有限allowlistの `capture_unsupported_dom:<reason>` codeとして伝播し、任意detailやDOM内容を拒否する
-- direct textが不正なquestion key要素は、boundedな子孫全体または個別text nodeが既存grammarに適合するかだけを有限分類し、raw textを返さず、候補があっても診断段階ではUnsupportedのままとする
-- Unsupported状態が継続してもreasonが変われば新しいcodeを伝播し、同じreasonの重複だけを抑止する
-- 後続の `capture_observing` やdelivery診断後も、直近のallowlist済みcapture failure codeをpopupで確認できる
-- fixtureに問題文、選択肢本文、解説、画像、URL parameter値、認証情報を入れない
+## 実行方法と確認範囲
 
-### Outboxとcollector
-
-- backgroundのoutbox保存ackまではcontent scriptが同一event IDのcandidateを保持・再送する
-- collector停止時にoutboxを保持し、同一event IDのinserted/duplicate ack後だけ削除する
-- network failure、HTTP 429、5xxをretryし、malformed ack、event ID不一致、non-retryable responseをblockedにする
-- collector復旧後にalarmまたは手動retryで送信できる
-- blocked eventの後続pending eventをalarmなしで取り残さず、手動retryでblockedを再開する
-- endpointは127.0.0.1、設定可能port、exact `/v1/attempt-events`だけを受理し、credentials、query、fragment、redirectを拒否する
-- payloadが`AttemptEventV1`にstrict適合し、問題文、選択肢本文、解説、画像、正答index、session/device/self-rating、cookie、tokenを含まない
-
-### History collector HTTP boundary
-
-- serverがIPv4 `127.0.0.1`へだけbindし、port競合時に別portへfallbackしない
-- exact `POST /v1/attempt-events`とuncompressed `application/json`だけを受け、
-  method、path、query、Host、content type/encoding、credential headerの不一致を
-  4xxで拒否する
-- streaming bodyとContent-Lengthのいずれでも64 KiB上限を超える入力を拒否し、
-  request bodyをerrorやlogへechoしない
-- strict `AttemptEventV1`のinsertedでcommit後のexact ACKを返し、SQLite本体と
-  全selected optionを再open後にも確認できる
-- 同一payloadのreplayは行数を増やさずexact duplicate ACKを返す
-- 同じevent IDの内容相違は409で既存rowを保持し、storage/runtime failureは5xxで
-  extensionのretry対象にする
-- 一件の合成outboxはexact committed ACKの後だけ`1 -> 0`となり、malformed ACK
-  相当では削除しない
-- graceful shutdownがlistenerを閉じてからowned storageを閉じ、重複closeも安全に
-  処理する
-
-### Repository safety
-
-- review-engineがstorageをimportしない
-- schema、fixture、ログtableに問題文、選択肢本文、解説、画像、認証情報用payloadがない
-- `packages/contracts` のV1型と生成済みschemaにbrowser-extension都合の差分がない
-
-## 実行
-
-```sh
-pnpm build
-pnpm test
-pnpm lint
-pnpm typecheck
-pnpm verify
-```
-
-各packageは `pnpm --filter @qb-study/<name> test` のように単独実行できる必要があります。browser-extension単体は `pnpm verify:browser-extension` でlint、typecheck、fixture test、bundle buildを確認します。ネットワークや実サイトを必要とするテストはこの基盤へ追加しません。
+コマンドは [開発手順](DEVELOPMENT.md)、実行結果と実機での未確認項目は [検証状況](VALIDATION.md) に記載しています。
+実際のQB画面への対応、iOSの署名とSafari権限、端末ロックや長時間停止からの復帰は、合成テストとは別に確認が必要です。

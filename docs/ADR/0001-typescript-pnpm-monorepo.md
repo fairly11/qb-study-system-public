@@ -1,16 +1,19 @@
-# ADR-0001: TypeScript pnpm monorepo
+# ADR-0001: TypeScriptとpnpmによるモノレポ
 
-- Status: Accepted
-- Date: 2026-08-24
+- 状態: 採用
+- 決定日: 2026-08-24
 
-## Context
+## 背景
 
-4コンポーネントを独立して開発・実行しながら、型、schema、storage、test基盤を共有する必要があります。
+ブラウザ拡張、履歴収集、復習計算、問題セット作成を別々に開発しながら、型定義、データ検証、保存処理、テスト環境を共有したい。
 
-## Decision
+## 決定
 
-Node.js 24.19.0、pnpm 11.19.0、ESM、TypeScript strict、project referencesを使用します。workspaceは `apps/*`、`services/*`、`packages/*` とし、内部依存は `workspace:*` に限定します。
+複数のパッケージを一つのリポジトリで管理するモノレポ構成を採用する。
+Node.js 24.19.0、pnpm 11.19.0、ES Modules、TypeScriptのstrict設定とproject referencesを使用する。
+パッケージは `apps/*`、`services/*`、`packages/*` に配置し、内部依存は `workspace:*` で指定する。
 
-## Consequences
+## 影響
 
-各packageをfilterして検証でき、worktreeで並行開発できます。循環依存を禁止し、root lockfileと共通compiler/lint/test設定を維持する必要があります。
+パッケージごとに検証できる一方、依存関係の固定ファイルとコンパイラ、静的検査、テストの設定は共有する。
+パッケージ間の循環依存は禁止する。

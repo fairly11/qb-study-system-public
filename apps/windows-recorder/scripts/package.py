@@ -136,17 +136,17 @@ def main():
         'environment': 'macOS development environment', 'automated_checks': evidence,
         'powershell_scope': 'syntax and portable checks only; Windows installer and ACL untested',
         'windows_device_tested': False, 'live_notion_tested': False, 'live_qb_tested': False,
-        'html_visual_inspection': False, 'html_visual_inspection_note': 'In-app browser is unavailable.',
+        'html_visual_inspection': False, 'html_visual_inspection_note': 'Rendered HTML appearance has not been checked.',
     }
     release_path.write_text(json.dumps(release, ensure_ascii=False, indent=2) + '\n')
-    validation = 'QB記録 Windows版 0.1.1-preview 検証記録\n\n'
-    validation += '共通プログラムの作成、コード検査、型検査、テストに合格しました。\n'
+    validation = 'QB Record for Windows 0.1.1-preview 検証の範囲\n\n'
+    validation += '共通プログラムのビルド、コード検査、型検査、自動テストが成功しました。\n'
     validation += '配布物のテスト: ' + str(evidence['distribution']['tests_passed']) + '件成功、失敗0件。\n'
     validation += '通常学習と復習、116回以前の記録、再送時の重複防止、終了後の保存、未接続時の受信停止を確認しました。\n'
     validation += '既存Notionへの設定検査は模擬応答を使い、データベース新設・既存設定の上書きがないことを確認しました。\n'
     validation += 'PowerShellの構文と配布ファイルを検査し、Nodeの公式検査値と固定値の一致を確認しました。\n\n'
-    validation += '未検証: Windows実機の導入、Windowsのアクセス権、実Chromeの解答、本人のNotionへの到達。\n'
-    validation += 'この検証では本番QBやNotionへ試験用データを送信していません。\n'
+    validation += '未検証: Windows実機での導入とアクセス権、Chromeでの実解答からNotionへの同期、HTML説明書の表示。\n'
+    validation += '検査項目と成功件数は RELEASE.json の verification.automated_checks を参照してください。\n'
     (root / 'docs/Validation-ja.txt').write_text(validation, encoding='utf-8-sig')
     files = inventory(root)
     links = check_links(files)

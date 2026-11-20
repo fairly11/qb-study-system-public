@@ -1,26 +1,27 @@
-# Architecture decision records
+# 設計判断の記録
 
-Accepted ADRは実装上の制約です。Proposed ADRは未解決事項であり、Acceptedになるまで関連する外部機能を実装しません。
+ADR（Architecture Decision Record）は、実装方針とその理由を記録する文書です。
+過去の判断が変更された場合は、状態欄と本文に置換先を示しています。
+現行構成を先に知りたい場合は [アーキテクチャ](../ARCHITECTURE.md) を参照してください。
 
-| ADR | Status | Decision |
+| ADR | 状態 | 決定 |
 |---|---|---|
-| [0001](0001-typescript-pnpm-monorepo.md) | Accepted | TypeScript pnpm monorepo |
-| [0002](0002-sqlite-source-of-truth.md) | Accepted | SQLiteを正本とする |
-| [0003](0003-versioned-json-contracts.md) | Accepted | バージョン付きJSON契約 |
-| [0004](0004-attempts-and-snapshots.md) | Accepted | AttemptとSnapshotの分離 |
-| [0005](0005-attempt-idempotency.md) | Accepted | Attemptのidempotencyと追記専用性 |
-| [0006](0006-time-and-calendar-policy.md) | Accepted | UTC瞬間とAsia/Tokyo暦日 |
-| [0007](0007-question-identifiers.md) | Accepted | 問題識別子の正規化 |
-| [0008](0008-data-minimization-and-safe-logs.md) | Accepted | データ最小化と安全なログ |
-| [0009](0009-model-neutral-review-v1.md) | Accepted | モデル中立のreview V1 |
-| [0010](0010-external-integration-decisions.md) | Proposed | 外部連携の未解決事項 |
-| [0011](0011-append-only-derived-records.md) | Accepted | 派生状態と追記専用実行記録の分離 |
-| [0012](0012-browser-extension-qb-capture-consent.md) | Accepted | QB取得のdocument単位同意とfail-closed境界 |
-| [0013](0013-local-loopback-history-collector.md) | Accepted | local loopback collectorとcommit後exact ACK |
-
-| [0017](0017-automatic-qb-capture.md) | Accepted | QBの自動記録とセット由来に基づく学習区分 |
-| [0018](0018-recovered-answer-evidence.md) | Accepted | 解答日時と選択番号が不明な確認済み解答の補完 |
-
-| [0019](0019-ios-safari-recording.md) | Accepted（実機確認前） | iPhoneのSafariから端末保存とNotion同期 |
-
-既存のAccepted ADRを編集して過去の判断を上書きせず、変更は新しいADRで置き換え関係と移行方針を記録します。
+| [0001](0001-typescript-pnpm-monorepo.md) | 採用 | TypeScriptとpnpmによるモノレポ |
+| [0002](0002-sqlite-source-of-truth.md) | 一部変更 | SQLiteによる端末内保存。Notion同期時は0014に従う |
+| [0003](0003-versioned-json-contracts.md) | 採用 | バージョン付きJSON契約 |
+| [0004](0004-attempts-and-snapshots.md) | 採用 | 解答イベントと履歴スナップショットの分離 |
+| [0005](0005-attempt-idempotency.md) | 採用 | 再送と解き直しの区別、追記専用の履歴 |
+| [0006](0006-time-and-calendar-policy.md) | 採用 | UTCの時刻とAsia/Tokyoの日付 |
+| [0007](0007-question-identifiers.md) | 採用 | 問題識別子の正規化 |
+| [0008](0008-data-minimization-and-safe-logs.md) | 採用 | 保存項目とログの制限 |
+| [0009](0009-model-neutral-review-v1.md) | 採用 | 記憶モデルに依存しないV1の復習データ |
+| [0010](0010-external-integration-decisions.md) | 一部解決 | 外部連携の課題と決定先 |
+| [0011](0011-append-only-derived-records.md) | 採用 | 計算の現在値と過去の実行記録の分離 |
+| [0012](0012-browser-extension-qb-capture-consent.md) | 一部置換 | 当初のページ別開始方式と取得条件。開始方式は0017へ移行 |
+| [0013](0013-local-loopback-history-collector.md) | 採用 | 同じ端末での解答受信と、保存確定後の応答 |
+| [0014](0014-notion-shared-original.md) | 採用 | Notionを複数端末共通の原本とする |
+| [0015](0015-daily-review-model-and-selector.md) | 採用 | 記憶予測と日次復習候補の選択 |
+| [0016](0016-daily-review-publication.md) | 一部変更 | 日次候補の固定と問題セット照合。学習区分は0017に従う |
+| [0017](0017-automatic-qb-capture.md) | 採用 | 自動記録と学習区分の判定 |
+| [0018](0018-recovered-answer-evidence.md) | 採用 | 解答時刻と選択番号が不明な記録の補完 |
+| [0019](0019-ios-safari-recording.md) | 採用 | iPhone / iPadの端末内保存とNotion同期 |

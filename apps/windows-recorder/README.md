@@ -1,30 +1,36 @@
-# Windows記録専用版
+# QB Record for Windows
 
-最新Chrome拡張、PC内への耐久保存、既存Notion同期、公開済み復習セットの読取り照合を配布します。
-復習計算と公開は既存Macが担当します。
-Windows側には計算プログラム、発行用の設定、新しいNotionデータベースを作る処理を含めません。
+Windows 11のChromeで解いたQBの記録を、MacやiPhoneと共通のNotionへ送るアプリです。
+Windowsでは解答の記録と同期を行い、復習候補の計算とセット作成はMacで行います。
+すでにNotionの解答ログ、問題マスター、復習計画ページを使っている環境に追加します。
 
-## 開発環境の検証
+ZIPから導入する場合は、[導入手順](docs/manual.html)を参照してください。
+WindowsだけでNotionの初期設定と復習計算まで行う構成には、[QB Study Friend](../windows-friend/README.md)を使います。
 
-1. `pnpm install --frozen-lockfile`
-2. `pnpm build`
-3. `pnpm lint`
-4. `pnpm typecheck`
-5. `pnpm test`
-6. `pnpm build:windows-recorder`
-7. `pnpm test:windows-recorder`
+## ビルドと検証
 
-配布用テストは別ポートと一時フォルダを使い、Notionを模擬応答に置き換えます。
-本番QBやNotionに試験用の解答を送信しません。
-PowerShell検査は `test/check-powershell.ps1` です。
-Mac上の構文検査とWindows実機のアクセス権検査は区別します。
-Windows PowerShell 5.1の通常ユーザーで `test/check-windows-acl.ps1 -PackageRoot <展開先>` を実行すると、アクセス権の初回設定と再設定、作成後のファイルの保護、不要な読取り許可の拒否を一時フォルダで検査します。
-0.1.1-previewでは、保護済みフォルダへの再設定で監査用の管理権限を要求していた処理を修正しました。
-本人、SYSTEM、Administratorsだけにアクセスを許す条件は維持します。
+リポジトリ直下で実行します。
 
-## 配布
+```sh
+pnpm install --frozen-lockfile
+pnpm build
+pnpm verify
+pnpm build:windows-recorder
+pnpm test:windows-recorder
+```
 
-`scripts/package.py` は検証結果、配布内ファイル、秘密の混入、内容一致を検査してZIPを作ります。
-`connection-targets.json` は本人の3つの公開接続先IDだけを持つ別ファイルです。
-秘密の接続キーと学習履歴を配布ZIPに含めません。
-Windows実機の導入とNotion到達は別途確認が必要です。
+配布用テストは、一時フォルダーと模擬Notion応答を使って保存・同期・設定画面を検査します。
+PowerShellの構文検査は `test/check-powershell.ps1` で行います。
+
+Windows PowerShell 5.1の通常ユーザーで `test/check-windows-acl.ps1 -PackageRoot <展開先>` を実行すると、保存先のアクセス権を一時フォルダーで検査できます。
+検査対象は、初回設定、再設定、作成後のファイルの保護、不要な読み取り許可の拒否です。
+保存先は、実行したユーザー、SYSTEM、Administratorsだけがアクセスできる設定にします。
+
+## ZIPの作成
+
+`scripts/package.py` は検証結果と配布ファイルを検査してZIPを作成します。
+接続先は、解答ログ・問題マスター・復習計画ページの3つのIDを記した `connection-targets.json` で指定します。
+Notion接続キーはインストール後の操作画面から入力します。
+
+Windows実機での導入、アクセス権、実際のQB解答からNotionへの同期は未検証です。
+導入先での確認手順は [導入手順](docs/manual.html)に記載しています。

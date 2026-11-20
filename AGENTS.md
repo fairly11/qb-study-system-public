@@ -4,11 +4,11 @@
 
 ## リポジトリ構成
 
-- `apps/browser-extension`: QB解答イベント取得Chrome拡張の骨格
+- `apps/browser-extension`: QB解答イベントを取得するChrome拡張
 - `apps/ios-safari`: iPhone / iPad共通のSafari拡張、設定アプリ、Swiftの保存・Notion同期処理
 - `apps/windows-recorder`: Windows向け記録専用アプリ
-- `apps/set-builder`: 復習用問題セット生成アプリの骨格
-- `services/history-collector`: 演習履歴収集・照合サービスの骨格
+- `apps/set-builder`: 復習用問題セットの登録一覧生成と照合
+- `services/history-collector`: 演習履歴の収集、Notion同期、日次復習
 - `packages/contracts`: バージョン付きTypeScript型とJSON Schema
 - `packages/storage`: SQLite、migration、永続化境界
 - `packages/question-normalizer`: 国試問題番号の正規化
@@ -40,7 +40,7 @@ package単位では `pnpm --filter <package-name> <script>` を使います。�
 - 実サイトへのアクセスや操作は、対象と範囲についてその時点の明示的な許可がない限り行わないでください。
 - 不確実な由来や精度を推測で補わず、契約の品質フィールドまたは未解決事項として残してください。
 - SQLiteを正本とし、Google Sheetsを入力元や競合解決元にしないでください。
-  Notion同期を有効にした範囲はADR-0014の例外です。ユーザーの指定によりNotionを複数Mac共通の原本、各MacのSQLiteを耐久性のある送信待ちと控えにします。既存V1とGoogle Sheets契約は変更しません。
+  Notion同期を有効にした範囲はADR-0014の例外です。Notionを複数端末共通の原本、各MacのSQLiteを耐久性のある送信待ちと控えにします。既存V1とGoogle Sheets契約は変更しません。
 
 ## コード品質
 

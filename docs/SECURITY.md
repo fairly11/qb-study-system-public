@@ -1,95 +1,84 @@
-# Security and privacy
+# 保存する情報とアクセス制御
 
-## 保存禁止データ
+## 解答から取得する情報
 
-次のデータはソース、SQLite、JSON、fixture、snapshot、ログ、エラー、スクリーンショットへ保存しません。
+記録するのは、問題番号、解答日時、正誤、選択した記号、記録元と精度、学習区分です。
+QBの問題文、選択肢本文、解説、画像、ページ全体のHTMLは保存しません。
+選択した記号と、選択肢の文章は別の情報として扱います。
 
-- QBの問題文
-- 選択肢本文
-- 解説
-- 問題画像その他のQBコンテンツ
-- password、token、cookie、session、OTPその他の認証情報
-- ページ全体のHTML
-- 不要なURL parameter、query、fragment
-- 実サイトから導出した正答選択肢indexの永続化fieldまたはlist
+正誤の判定では、画面上の正答表示と選択状態を一時的に比較します。
+正答の選択番号は解答イベント、拡張内の保存領域、診断ログへ渡しません。
+問題番号や記録元の識別子には文字種と長さの制限を設け、自由文を保存する入口にしません。
 
-問題を識別するために保存できるのは、正規化済みquestion key、選択済み選択肢の明示的な1始まりindex、正誤、検出時刻、および契約で定めた固定の由来・品質fieldだけです。
+## Chrome拡張の動作範囲
 
-production adapterは正答markerから正答indexを一時的に導出し、選択済みindexの集合との比較にだけ使います。正答indexはadapterの戻り値、content/background message、`AttemptEventV1`、outbox、診断ログへ渡しません。content-freeの合成fixtureはmarker配置を再現できますが、実サイト由来の正答や正答index fieldを保存しません。問題文、選択肢本文、解説、画像のtext・HTML・URLを読み取るselectorや処理を設けません。
+画面移動を検出するため、拡張のスクリプトは `https://qb.medilink-study.com:443/*` に配置します。
+解答の監視を開始するのは、オリジンとパスが一致する `/quiz` の最上位フレームだけです。
+QBのボタンを押す、解答を代行する、問題セットを書き換える処理はありません。
 
-永続化する由来・group・algorithm識別子は、長さ制限付きのsafe tokenとして検証します。空白、改行、日本語その他の自由文を拒否し、識別子fieldを問題文や解説の迂回保存先にできないようにします。`set_name` は利用者向け表示名として自由文を許しますが、保存禁止データの規則は同様に適用されます。
+メッセージを受け取る側でも、送信元のオリジン、文書ID、演習セッション、現在の画面を確認します。
+前の画面から遅れて届いた通知を、その後の演習に適用しません。
+記録は問題画面で自動的に始まり、拡張の画面から一時停止できます。
 
-## document単位の同意境界
+ChromeのAPI権限は `alarms` と `storage`、通信先の権限は `http://127.0.0.1/*` です。
+Cookieやネットワーク通信の監視権限は要求しません。
+演習中の状態は `storage.session`、送信待ちと配信結果は `storage.local` に分け、拡張が信頼する実行環境からのみアクセスできる設定にします。
 
-Chromeはcontent scriptを `https://qb.medilink-study.com:443/quiz` とquery付きURL用の `https://qb.medilink-study.com:443/quiz?*` へ静的に配置しますが、同意前のbootstrapはcapture処理を完全に不活性に保ちます。同意前にはQB DOMのquery、capture用`MutationObserver`の作成、candidate生成、outbox参照、collector送信を行いません。bootstrapが行えるのは、安全なpage-session IDの生成、同意command listenerの登録、および対象documentが同意確認可能であることの通知だけです。workerが一時的に応答できない場合は同じpage-session IDのREADYだけを再通知し、document identityによるworker側の重複排除を維持します。
+## 画面構造が一致しない場合
 
-service workerはREADY senderについて、tab/window ID、active state、top frame、`documentId`またはpage-session ID、exact origin `https://qb.medilink-study.com`、exact pathname `/quiz`、credentialなしURLを検証します。content scriptからのmessageは侵害されたpage由来の可能性があるuntrusted inputとして、message shapeと同意状態を再検証します。
+取得処理は、問題番号、問題カード、選択状態、結果表示の構造を検査します。
+対象が欠ける、複数見つかる、選択状態と結果が矛盾するといった場合は、解答を生成せず診断コードを返します。
+別の領域から似た要素を探して代用しません。
 
-対象documentごとに1回だけ `chrome.action.openPopup()` で同意popupを提示します。background tabではactiveになるまで提示せず、popup APIを呼ぶ直前にもtarget tabがactiveであることを再確認します。`openPopup` APIが存在しないか呼出しがrejectされた場合は、そのtabだけに `!` badgeと `QB記録: 記録開始の確認が必要` titleを表示し、captureは開始しません。
+結果画面の表示だけでは新しい解答と扱わず、未解答から結果への遷移や実際の解答操作を確認します。
+解答後の再描画、結果の再表示、選択情報のない結果を、新しい不正解や不明解答として記録しません。
+詳しい取得条件は `apps/browser-extension/src/adapters/` と [ADR-0017](ADR/0017-automatic-qb-capture.md) を参照してください。
 
-- 「記録を開始」を選んだ後、同じactive documentへのstart commandが成功して初めてcapture messageを受理します。
-- popupを閉じただけでは同意・拒否のどちらにもせず、完全な無操作としてcaptureを開始しません。
-- 「今回は記録しない」はそのdocumentの自動提示を抑止し、captureを開始しません。同じdocumentでも利用者がpopupを手動で開けば後から開始できます。
-- `loading`と`complete`はexact documentの照合契機にだけ使用し、通知自体から同意を付与または取消しません。同じ `/quiz` documentがprobeに応答する間は同意、capture、自動popup済み状態を保持します。verified new document、対象外location、到達不能documentではfail closedで破棄し、tab closeとtab replacementでは無条件に破棄します。
-- 同意状態は `storage.session`、outboxと配信状態は `storage.local` に分離し、どちらも `TRUSTED_CONTEXTS` へ限定します。
+## PC内の収集サービス
 
-## 外部システムと権限境界
+収集サービスはIPv4の `127.0.0.1` だけで待ち受け、ポートとデータベースの保存先を設定できます。
+解答の保存は `POST /v1/attempt-events`、学習区分付きの保存は `POST /v2/attempt-events`、復習セットの照合は `GET /v1/review-sets/<ID>` を使用します。
 
-- production adapterは観察済みの公開画面DOMだけを読み取ります。QBの非公開API、通信、内部実装を解析・推測・リバースエンジニアリングしません。
-- QB上のbutton、選択肢、解答確定、rating、note、bookmark、問題set、navigationを一切操作しません。
-- manifestのAPI permissionはoutbox/retryと同意状態に必要な `alarms` と `storage` だけです。`tabs`、`webNavigation`、`activeTab`、`scripting`、cookie、webRequest権限を要求しません。
-- QB domainは `host_permissions` へ追加しません。page accessはstatic `content_scripts.matches`のexact scheme/host/default portと狭いquiz pathに限定し、runtimeでもexact origin/pathを検証します。
-- `host_permissions` はcollector送信用の `http://127.0.0.1/*` だけです。collector endpointはportだけを設定可能とし、pathは `/v1/attempt-events` に固定します。
-- collector requestはcredential、cookie、authorization header、redirect、query、fragmentを使用しません。
-- Google Sheetsへ直接アクセスしません。
+POSTの本文は非圧縮のJSON、上限64 KiBです。
+メソッド、パス、Host、ヘッダー、内容の型を検証し、想定外の入力は拒否します。
+CookieやAuthorizationヘッダーは受け付けず、CORSの許可も返しません。
+SQLiteへの保存、または同じ内容が保存済みであることの確認後に、同じイベントIDの受領通知を返します。
 
-`chrome.action.openPopup()`を一般配布のextensionで使用できるChrome 127を最小versionとします。APIが存在しない、rejectされる、またはworkerのcapture core準備後にcontent scriptへのstart指示が失敗する場合はbadge/titleで手動確認を促し、captureを自動開始しません。一時的なtab更新通知だけではsessionを破棄せず、exact documentへのprobeが失敗した場合だけstaleまたは到達不能としてephemeral sessionを破棄し、badge/titleを消します。storageまたはcapture coreの準備失敗時も同意を推定せず、popup内のbounded error codeだけを表示してcaptureを開始しません。
+このローカルHTTP接続には認証がありません。
+同じPC内の別プロセスによるポートの先取りや、収集サービスの偽装は防げないため、信頼できる端末内で使用する前提です。
+外部から到達できるように転送・公開する構成にはしないでください。
 
-## DOM解析のfail-closed境界
+## Notionの接続情報
 
-selectorとclass tokenはproduction adapterのDOM contractへ集約します。exact location、main、question key、question cardは各1件、cardを含むreview済みroot祖先は観察済みどおりexact 2件を要求し、近い方だけをfunctional quiz rootとします。root祖先が0件または2件以外ならUnsupportedとし、内側rootのclass drift時に外側wrapperへfallbackしません。question card内のoptionが5件でない場合もUnsupportedです。functional root内のresult markerが0件ならpendingとし、外側wrapperだけにあるmarkerからresolved状態を生成しません。resolved時のselected marker pair不整合はUnsupportedとしてeventを生成しません。question card内の全 `bg-qb-sky` は、tagとclass token集合が完全一致するcorrect badge、または各optionの観察済みexact path上にexact 1件あるprogress fillへ完全分類し、未分類、欠落、重複、path driftをUnsupportedにします。選択済みoptionが1件以上の場合だけcorrect badgeの配置・重複・範囲を検証し、不整合をUnsupportedにします。選択済みoptionが0件でresult markerと1件以上のexact correct badgeがある場合は、正答index集合を導出せず `resolved_without_selection` にします。progress fillだけではcorrect badgeの存在証拠にしません。
+PCでは、アクセス権を制限したファイルから収集サービスが接続キーを読みます。
+iPhone・iPadではKeychainへ保存し、Swift側で使用します。
+キーをChrome拡張、SafariのJavaScript、QBのページへ渡しません。
 
-capture開始時にすでにresolvedな画面は新規解答の証拠にしません。同意後にpendingを観測し、同じquestion keyがresolvedへ遷移した場合だけcandidate生成対象にします。resolvedでも選択済みoptionが0件なら `resolved_without_selection` としてその問題をterminal扱いにし、`incorrect`や`unknown`へ変換せず履歴化しません。別のsupported question keyへ移れば同じdocumentのobserverで次のcycleを続け、問題数の上限は設けません。
+接続先の列構造と関連先を確認してから同期します。
+作成後の応答が失われた場合は、同じイベントIDの記録を読み戻して照合します。
+見つからないことだけを理由に再作成せず、確認待ちとして保持します。
 
-## ログ方針
+NotionにはイベントIDの一意制約がないため、すべての並行操作で重複を防げるわけではありません。
+同じSQLiteを複製して複数端末から同時に送信しないでください。
+詳細は [Notion同期](NOTION_SYNC.md) に記載しています。
 
-`system_logs` とextension診断はallowlist化した構造化fieldだけを持ちます。
+## ログと状態表示
 
-- severity
-- component
-- event code
-- timestamp
-- 任意のrun ID、correlation ID、record ID、question key
-- 数値カウンタ
+永続ログには、定義済みのイベントコード、日時、処理の識別子、問題番号、件数などの許可された項目だけを記録します。
+リクエストやレスポンスの全文、ページ本文、URL全文、任意の例外メッセージは保存しません。
+画面構造の不一致も、内容を含まない有限種類の診断コードで示します。
 
-自由形式payload、request/response dump、DOM text、URL、query、stack全体を永続化しません。error messageを直接保存せず、安定したallowlist済みerror codeを使用します。DOM不一致の診断も `capture_unsupported_dom:<reason>` の有限集合だけで、DOM text、HTML、URL、自由形式detailを含めません。badge/titleと同意状態にはquestion key、選択indexその他のattempt情報を表示・保存しません。
+拡張の「直近の記録」は、送信待ちと送信済みキャッシュから最大99件を表示します。
+表示するのは問題番号、日時、正誤、選択記号、送信状態です。
+保存領域を読み取れない場合は、0件ではなく読み取り不能と表示します。
 
-extension popupの「直近の記録」は、extension pageだけが利用できるbackground routeを通して、既存outboxと送信済みcacheから最大99件を表示します。表示fieldはquestion key、answered-at、result、選択済みindex、delivery stateだけです。popupから`chrome.storage`へ直接アクセスせず、event ID、provenance、正答index、URL、DOM/問題内容を返しません。99件は表示上限だけで、captureや保存の問題数上限ではありません。storage read失敗時は空履歴と断定せず、読み取り不能と表示します。最新の一般診断とは別に、直近のallowlist済みcapture failure codeを保持して表示し、後続の `capture_observing` で原因が見えなくなることを防ぎます。
+## 保存先と更新時の注意
 
-## ローカルデータ
+運用するSQLite、接続キー、バックアップはソースコードと分けて管理します。
+PC版の保存層はPOSIX環境でディレクトリを `0700`、データベースを `0600` として作成します。
+Windows版のアクセス権は専用の導入処理と確認スクリプトで扱います。
+端末の暗号化やバックアップ先の保護は、利用環境側で設定してください。
 
-- 本番DBはiCloud配下のrepoに置かず、既定で `~/Library/Application Support/qb-study-system/` に置きます。
-- `.env`、SQLite本体、WAL/SHM、ログ、build artifactをGit対象外にします。
-- `.env.example` は安全な非秘密設定だけを示します。credential用変数を例示しません。
-- SQLite adapterはPOSIX環境で作成directoryを `0700`、DB fileを `0600` にします。非POSIX環境、既存の親directory、backup、端末暗号化の運用は実運用開始前の未解決事項です。
-- loopback collector profileには認証がなく、同じ端末でportを確保した別processによる受信・ack偽装を防げません。accepted collector contractとendpoint ownershipが確立するまで外部配布向けのproduction接続とは扱いません。
-
-local history collectorは [ADR-0013](ADR/0013-local-loopback-history-collector.md)
-に従い、IPv4 `127.0.0.1`へだけbindします。hostとpathは設定できず、portと
-absolute database pathだけを設定できます。exact `POST /v1/attempt-events`、
-uncompressed `application/json`、64 KiB以下のbodyだけを受け、Host、method、
-path、content type/encoding、authorization、proxy authorization、cookieを
-fail closedで検証します。CORS許可は返しません。
-
-HTTP層とstorage層の両方で`AttemptEventV1`を検証し、SQLite transactionの
-commitまたは同一payloadのduplicate確認後だけ同じevent IDのexact ACKを返し
-ます。4xx/5xx error bodyはallowlist済みcodeだけで、request、header、DB path、
-exception message、stackをechoしません。これは認証なしのlocal-only profileで
-あり、別processによるport先取りや偽装を解決するものではありません。
-
-## 失敗時の原則
-
-- 同意、sender、DOM、schema、migration checksum、idempotencyのいずれかが不一致ならfail closedにします。
-- 情報不足を `not_found` や推測値へ変換しません。
-- collector成功をexact ackで確認するまでoutboxから削除しません。
-- external writeの成否が不明な場合は成功扱いせず、`blocked` または明示的なunknownとして残します。
+拡張やアプリを削除すると、未送信の記録が失われる場合があります。
+更新時は同じ保存先と識別子を使い、送信待ちを確認してから作業してください。
+データ構造の更新ファイルが改変されている場合や、同じ記録IDの内容が異なる場合は、既存記録を残して処理を停止します。

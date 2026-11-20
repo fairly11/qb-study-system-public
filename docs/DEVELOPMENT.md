@@ -1,108 +1,106 @@
-# Development
+# 開発手順
 
 ## 必要環境
 
 - Node.js 24.19.0
 - pnpm 11.19.0
 - Git
+- iPhone・iPad版をビルドする場合は、macOSとXcode
 
-Nodeとpnpmのversionはroot設定に従ってください。Gitのglobal/local user設定は変更しません。
+バージョンの指定はルートの `package.json`、依存ライブラリの固定値は `pnpm-lock.yaml` で管理しています。
 
-## 初期化と検証
+## 初回ビルドと検証
+
+リポジトリ直下で実行します。
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm build
-pnpm test
-pnpm lint
-pnpm typecheck
 pnpm verify
 ```
 
-特定packageだけを確認する例:
+最初のビルドで、他のパッケージが参照する型定義と拡張のJavaScriptを生成します。
+`pnpm verify` は `lint`、`typecheck`、`test`、`build` を順に実行します。
+各工程だけを実行する場合は、`pnpm test` のように指定できます。
+
+特定のパッケージを検証する例です。
 
 ```sh
 pnpm verify:browser-extension
-pnpm verify:set-builder
 pnpm verify:history-collector
-pnpm verify:contracts
-pnpm verify:storage
-pnpm verify:question-normalizer
-pnpm verify:review-engine
+pnpm --filter @qb-study/review-engine test
 ```
 
-各aliasはrootから `pnpm --filter <package-name> verify` を実行します。個別工程だけを確認するときは、`pnpm --filter @qb-study/review-engine test` のように `build`、`test`、`lint`、`typecheck` を指定できます。
+全体の検査対象と個別テストの場所は [テスト方針](TEST_STRATEGY.md) に記載しています。
 
-schemaを変更する場合は、contracts packageの生成コマンドでJSON Schemaを更新し、schema checkを含む `pnpm verify` を実行します。既存V1へ破壊的変更を入れません。
+## 端末別のビルドとテスト
 
-## 環境変数
+iPhone・iPad版は、共通処理のSwiftテストと、署名なしのシミュレータ向けビルドを行います。
 
-`.env.example` を参照し、実値を含む `.env` はcommitしません。本番SQLiteはiCloudとrepoの外側に置きます。この初期版にはGoogle Sheets認証やQB認証の設定はありません。
+```sh
+pnpm test:ios-native
+sh apps/ios-safari/scripts/check-ios-build.sh
+```
 
-## Local history collector
+Windows記録専用版は、配布構成を生成した後、その構成を使うテストを実行します。
 
-既定のSQLite pathとport `8765`でcollectorを起動します。
+```sh
+pnpm build:windows-recorder
+pnpm test:windows-recorder
+```
+
+復習計算を含む別構成のWindowsアプリは、次で検証します。
+
+```sh
+pnpm --filter @qb-study/windows-friend build
+pnpm --filter @qb-study/windows-friend test
+```
+
+これらのテストは合成データと模擬通信を使用します。
+Windowsのアクセス権やiOSの署名、Safariの権限は、対象OS上で別に確認します。
+
+## ローカルの収集サービス
+
+次のコマンドは収集サービスをビルドして起動します。
+既定の待ち受け先は `127.0.0.1:8765` です。
 
 ```sh
 pnpm --filter @qb-study/history-collector start
 ```
 
-portを変更する場合は`QB_STUDY_COLLECTOR_PORT`、DBを変更する場合はabsolute pathの
-`QB_STUDY_DB_PATH`だけを設定します。hostはIPv4 `127.0.0.1`、pathは
-`/v1/attempt-events`に固定され、認証情報用の環境変数はありません。停止は
-`SIGINT`または`SIGTERM`を使用します。詳細は
-`services/history-collector/README.md`とADR-0013を参照してください。
+保存先を変更する場合は `QB_STUDY_DB_PATH` に絶対パスを指定します。
+ポートは `QB_STUDY_COLLECTOR_PORT` で変更できます。
+`.env.example` は設定例であり、サービスが `.env` を自動で読み込むわけではありません。
+運用データはリポジトリやiCloud同期フォルダの外に置きます。
 
-## 信頼ユーザー向けmacOS配布物
+収集サービスの詳細は [README](../services/history-collector/README.md)、Notionの接続設定は [Notion同期](NOTION_SYNC.md) を参照してください。
 
-commit済みかつcleanなworktreeから、拡張機能とstandalone collectorを1つの
-ZIPへまとめます。
+## macOS配布物の生成
+
+未記録の変更がない作業フォルダで、次を実行します。
 
 ```sh
 pnpm release:trusted
 ```
 
-配布コマンドはTypeScriptの全projectを強制再buildし、生成先をgit管理外の
-`artifacts/`とします。ZIPにはChromeへ「パッケージ化されていない拡張機能」
-として読み込む6ファイル、Node.js 24用collector bundle、migration、第三者
-license、導入・更新・削除手順、内部checksumを含みます。利用者のSQLite、outbox、
-認証情報、source map、`node_modules`、repository情報は含めません。外部checksumは
-同名の`.zip.sha256`で生成されます。
+拡張機能、Node.js用の収集プログラム、データ構造の更新用SQL、導入手順、第三者ライセンスを `artifacts/` 内のZIPへまとめます。
+ファイルの一致確認用に `.zip.sha256` も生成します。
+Chromeへの導入は「パッケージ化されていない拡張機能」の読み込みを使い、更新も手動で行います。
+収集サービスの実行にはNode.jsが必要です。
 
-配布前にZIPの`README.ja.md`を確認し、受領者へZIPとchecksumを別経路で共有して
-ください。これは信頼ユーザー向けのmacOS betaであり、Chrome Web Storeによる
-審査、自動更新、署名付き配布を代替するものではありません。
+## データ形式を変更する場合
 
-## 4コンポーネントのworktree
-
-cleanな `main` と初期commitがある状態で、repo rootから次を実行します。directory名とbranch名は例です。
+TypeScript型とJSON Schemaは、`packages/contracts` の共通定義から生成します。
 
 ```sh
-git worktree add ../qb-study-browser-extension -b feature/browser-extension main
-git worktree add ../qb-study-history-collector -b feature/history-collector main
-git worktree add ../qb-study-review-engine -b feature/review-engine main
-git worktree add ../qb-study-set-builder -b feature/set-builder main
+pnpm schemas:generate
+pnpm verify
 ```
 
-各worktreeでは同じlockfileから依存関係を導入し、対象packageをfilterして検証します。共有契約の変更が必要な場合は、利用側worktreeで独自変更せず、contracts変更を先に合意・統合します。
+既存V1の必須項目、フィールドの意味、許可する値を壊す変更は行わず、新しい版を追加します。
+変更理由と移行方針を [設計判断の記録](ADR/README.md) に残し、利用するパッケージを同時に確認してください。
 
-一時的な検証用worktreeは、変更がなく不要であることを確認してから明示的なpathを指定して削除します。
-
-```sh
-git worktree remove ../qb-study-browser-extension
-git worktree remove ../qb-study-history-collector
-git worktree remove ../qb-study-review-engine
-git worktree remove ../qb-study-set-builder
-git worktree prune
-```
-
-## Migration開発
-
-- 連番を飛ばさず、新しいforward-only SQL fileを追加します。
-- 適用済みmigrationを編集しません。
-- schema変更、index、trigger、rollback挙動をmigration testで確認します。
-- production DBに対する手動SQLや破壊的修復を開発手順にしません。
-
-## 外部操作
-
-開発・テストはsynthetic fixtureだけで完結させます。実QBサイト、非公開API、Google Sheetsには接続しません。外部操作を導入する後続作業では、対象、権限、dry-run、承認、監査結果を別途設計します。
+SQLiteの構造変更は、`packages/storage/migrations/` に新しい連番SQLを追加します。
+適用済みファイルは編集しません。
+空のデータベースからの作成、再実行、失敗時の取り消し、追記専用の制約をテストします。
+開発時の修復を、本番データへの手動SQLで行わないでください。

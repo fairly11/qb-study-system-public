@@ -1,16 +1,24 @@
-# ADR-0002: SQLiteを正本とする
+# ADR-0002: 端末内の記録をSQLiteで管理する
 
-- Status: Accepted
-- Date: 2026-08-24
+- 状態: 採用。Notion同期時の原本の扱いは [ADR-0014](0014-notion-shared-original.md) で変更
+- 決定日: 2026-08-24
 
-## Context
+## 背景
 
-演習履歴には一貫した重複排除、追記専用制約、transaction、migrationが必要です。Google Sheetsは人が閲覧・集計するには便利ですが、同時更新や厳密な制約の正本には適しません。
+解答の再送による重複を防ぎ、保存済みの履歴を追記専用にするには、保存処理全体の成功・失敗をまとめて扱うトランザクションと、データベース上の制約が必要になる。
+Google Sheetsは閲覧や集計には使えるが、この保存処理を担う原本にはしない。
 
-## Decision
+## 決定
 
-SQLiteを唯一の正本とし、Google Sheetsは将来の片方向同期先に限定します。初期adapterはNode.js 24の `node:sqlite` を使用し、`StorageDriver` 境界の内側へ隔離します。本番DBはrepoとiCloud同期領域の外側に置きます。
+端末内の記録はSQLiteへ保存する。
+実装にはNode.js 24の `node:sqlite` を使用し、データベースへの接続を `StorageDriver` の内側にまとめる。
+データベースファイルはリポジトリやiCloudの同期領域の外へ置く。
 
-## Consequences
+当初はSQLiteを唯一の原本とした。
+Notion同期を有効にした構成では、ADR-0014に従ってNotionを端末共通の原本、各端末のSQLiteを送信待ちと保存済み記録の控えとして扱う。
+Google Sheetsを記録の入力元や競合解決元にはしない。
 
-一貫性をローカルtransactionで守れます。一方、Node 24での `node:sqlite` Release Candidate状態を受容します。APIや安定性の問題があれば、公開storage境界を保ったままadapterを差し替えます。
+## 影響
+
+ローカルのトランザクションで保存の一貫性を保てる。
+`node:sqlite` のAPIや安定性に問題があれば、利用側へ公開する保存処理のインターフェースを維持して接続実装を差し替える。

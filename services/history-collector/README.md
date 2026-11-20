@@ -1,34 +1,27 @@
-# History collector
+# 解答記録の収集サービス
 
-Optional Notion synchronization is implemented behind the existing local capture
-boundary. See [the setup and recovery guide](../../docs/NOTION_SYNC.md) and
-[ADR-0014](../../docs/ADR/0014-notion-shared-original.md). The local ACK still means
-durable local storage, not confirmed Notion delivery. Without configuration the
-collector continues local-only operation.
+Chrome拡張から届いた解答を、同じPCのSQLiteへ保存するサービスです。
+Notion同期を設定すると、保存した解答を共通のNotionデータベースへ送ります。
+拡張に返す保存応答はローカル保存の完了を意味し、Notionへの送信完了とは別です。
 
-`@qb-study/history-collector` is the local HTTP boundary between the browser
-extension outbox and the append-only SQLite source of truth. It accepts one
-strict `AttemptEventV1` at a time and acknowledges the event only after the
-SQLite append transaction has committed or an identical replay has been
-identified.
+## 起動と設定
 
-## Run
-
-From the repository root:
+リポジトリ直下で実行します。
 
 ```sh
+pnpm build
 pnpm --filter @qb-study/history-collector start
 ```
 
-The default listener and database are:
+既定の待ち受け先と保存先は次のとおりです。
 
 ```text
-http://127.0.0.1:8765/v1/attempt-events
+http://127.0.0.1:8765
 ~/Library/Application Support/qb-study-system/qb-study.sqlite
 ```
 
-The listener host and path are fixed. Only the port and absolute database path
-can be changed:
+待ち受けアドレスは `127.0.0.1` に固定しています。
+ポート番号とデータベースの絶対パスを変更する場合は、次の環境変数を指定します。
 
 ```sh
 QB_STUDY_COLLECTOR_PORT=9876 \
@@ -36,20 +29,25 @@ QB_STUDY_DB_PATH="/absolute/path/qb-study.sqlite" \
 pnpm --filter @qb-study/history-collector start
 ```
 
-Startup and shutdown output contains only a component name, an allowlisted
-event code, and the numeric port. It does not print the database path, request
-body, event fields, headers, stack, or free-form error messages. Send `SIGINT`
-or `SIGTERM` for graceful shutdown.
+起動中のターミナルで `Control-C` を押すと終了します。
+プログラムから停止する場合は `SIGINT` または `SIGTERM` を送ります。
 
-## Local HTTP profile
+Notion同期の導入は [設定と復旧の手順](../../docs/NOTION_SYNC.md)、復習計画の作成は [日次復習の手順](../../docs/DAILY_REVIEW_OPERATIONS.md) を参照してください。
+Notion設定がなければ、ローカル保存だけで動作します。
 
-The only accepted route is `POST /v1/attempt-events` with uncompressed
-`application/json`. The request body is limited to 64 KiB and must validate as
-exactly one `AttemptEventV1`. Authorization, proxy authorization, cookies,
-query strings, other paths, and non-loopback Host headers are rejected. The
-server does not emit CORS headers.
+## HTTPの受け付け経路
 
-Successful responses use HTTP 200 and exactly one of these bodies:
+| メソッドと経路 | 用途 |
+|---|---|
+| `POST /v1/attempt-events` | `AttemptEventV1` 一件の保存 |
+| `POST /v2/attempt-events` | 解答と学習区分を含む `StudyAttemptEnvelopeV1` 一件の保存 |
+| `GET /v1/review-sets/<ID>` | 確認済みの日次計画とセットIDの照合 |
+
+POSTは圧縮されていない `application/json` を受け付け、本文の上限は64 KiBです。
+形式と内容を検証し、解答と選択番号の保存が確定してから応答します。
+学習区分を含む場合は、その区分も同じ保存処理で確定します。
+
+新規保存と、同一の解答を再送した場合は、ともにHTTP 200で返します。
 
 ```json
 {"event_id":"10000000-0000-4000-8000-000000000001","status":"inserted"}
@@ -59,22 +57,31 @@ Successful responses use HTTP 200 and exactly one of these bodies:
 {"event_id":"10000000-0000-4000-8000-000000000001","status":"duplicate"}
 ```
 
-An idempotency conflict returns 409. Malformed or unsupported requests return a
-bounded 4xx error envelope, and unexpected storage failures return 500 so the
-extension retains the event for retry. Error responses never echo input.
+同じイベントIDで内容が異なる場合は409、入力不正は4xx、保存処理の失敗は500です。
+復習セットの照合が利用できない場合は503を返します。
+エラー応答に入力内容は含めません。
 
-This is a first-party, local-only implementation of the extension's loopback
-profile. It is not an authenticated public collector contract. Another local
-process can still occupy the port or impersonate the collector; do not expose
-this profile as an external or network-reachable service.
+認証ヘッダー、Cookie、追加のクエリー文字列、想定外のHostヘッダーを拒否します。
+復習セット照合は拡張用の固定ヘッダーも検証します。
+CORSによる外部サイトからの接続は許可しません。
 
-## Verify
+## 保存とセキュリティ
+
+解答は追記専用で、同じイベントIDの再送によって件数を増やしません。
+保存応答の後に拡張が送信待ちを取り除くため、収集サービスを再起動しても受領済みの解答を再送できます。
+
+このサービスには通信相手の認証がありません。
+同じPCで別のプログラムがポートを先に使うと、収集サービスになりすますことができます。
+外部ネットワークに公開せず、管理できるPCで使用してください。
+
+通常のログは構成要素名、診断コード、件数などに限定しています。
+解答の本文、リクエスト全体、認証情報は出力しません。
+
+## 検証
 
 ```sh
 pnpm --filter @qb-study/history-collector verify
 ```
 
-Tests use content-free synthetic events, temporary SQLite databases, and an
-ephemeral IPv4 loopback port. They cover inserted and duplicate ACKs,
-idempotency conflicts, input rejection, body limits, binding safety, graceful
-shutdown, and the one-event outbox transition from one pending item to zero.
+合成イベント、一時的なSQLite、同じPC内のテスト用ポートを使用します。
+保存後の応答、同一IDの再送、内容競合、入力拒否、本文サイズ制限、停止処理、拡張の送信待ちとの連携を検査します。

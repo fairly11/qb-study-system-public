@@ -1,4 +1,5 @@
-QB記録 Windows版 検証記録
+QB Record for Windows 検証の範囲
 
-自動検証の結果は、このファイルを含む配布物のRELEASE.jsonに記載します。
-Windows実機でのインストール、アクセス権、実際のQB解答とNotion到達は未検証です。
+自動テストの結果は、配布物の RELEASE.json に記載しています。
+Windows実機でのインストール、アクセス権、実際のQB解答からNotionへの同期は未検証です。
+導入後は manual.html に従い、PCとNotionの記録が一致することを確認してください。

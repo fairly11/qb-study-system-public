@@ -1,0 +1,14 @@
+QB Study Friend 検証の範囲
+
+【自動テスト】
+記録と同期、復習計算、初期設定、停止と再開を、合成データと模擬Notion応答で検査します。
+配布版の検査項目と成功件数は RELEASE.json の verification.automated_checks を参照してください。
+
+【未検証】
+Windows 11実機でのインストールとアクセス権。
+実際のChromeでの解答記録とNotionへの同期。
+Claudeデスクトップからの操作と定期実行。
+
+【導入後の確認】
+manual.html に従って設定し、普段の学習で1〜2問解答します。
+PCとNotionの問題番号、正誤、選択記号、日時が一致することを確認してください。

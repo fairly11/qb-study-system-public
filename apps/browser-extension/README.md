@@ -1,255 +1,133 @@
-# QB study browser extension
+# Chrome用QB記録拡張
 
-This Manifest V3 extension automatically captures supported QB answer-result
-transitions on `/quiz`, under the user's site-wide recording instruction.
-It persists each actual answer to an outbox and sends it to the same Mac's
-loopback collector. It never answers questions or changes QB state.
+QBの問題を解くと、問題番号、選んだ選択肢、正誤、解答時刻を自動で記録するChrome拡張です。
+記録は同じPCの収集サービスへ送り、SQLiteに保存します。
+Notion同期を使う場合も、拡張に接続キーを渡す必要はありません。
 
-## Automatic recording and study classification
+## 導入と使い方
 
-The URL-only bootstrap is registered on `https://qb.medilink-study.com:443/*`.
-Navigation API events, browser history events, and a bounded URL check detect
-SPA transitions from the set/search screens into `/quiz` without a reload.
-Only the exact HTTPS origin, top frame, and `/quiz` path enable the reviewed
-answer DOM adapter. Other pages are used only to observe navigation context.
+Chrome 127以上と、Node.js 24で動く[収集サービス](../../services/history-collector/README.md)を使用します。
+リポジトリ直下で拡張ファイルを生成してください。
 
-The background verifies each document and route using a document-scoped probe.
-No `tabs`, `webNavigation`, cookies, or QB network-interception permission is added.
-A route probe compares the browser-provided sender URL with the content script's
-current URL; URLs are not persisted in the route store. The session-only store keeps
-a bounded set ID, document ID, route kind, and previous question ID. These identify
-a same-question reload without retaining a stale review purpose on a new visit.
+```sh
+pnpm install --frozen-lockfile
+pnpm build
+```
 
-Recording starts before the review-set lookup finishes so that a quick first
-answer can be captured. Candidate acceptance waits for the session's study
-context to settle. Each stored attempt retains its original context through
-retries and worker restarts.
+1. `pnpm --filter @qb-study/history-collector start` で収集サービスを起動します。
+2. Chromeの `chrome://extensions` で「デベロッパー モード」を有効にします。
+3. 「パッケージ化されていない拡張機能を読み込む」から `apps/browser-extension/dist` を選びます。
+4. 拡張機能メニューの `QB capture status` をツールバーに固定します。
+5. QBで演習を始めると、問題画面で自動記録が始まります。
 
-- Opening a supported problem screen starts recording automatically.
-- A `/search?questionSetId=...` route carries its exact set ID into the following
-  quiz. The local collector checks verified daily-publication records or the
-  shared Notion candidate pages. Only a verified system set is `review`.
-- Other confirmed sets, ordinary quiz entry, and valid quiz entries whose set origin was lost are `normal`. Question membership,
-  set-name prefixes, and sort order are never evidence of a review session.
-- An invalid set identifier or unavailable set lookup remains `unclassified`;
-  recording continues and the popup displays `判定未確認`.
-- The popup offers `通常学習` and `復習課題` buttons for the current exercise.
-  Manual selection applies only to future answers, supersedes pending automatic
-  classification, and does not change stored attempts or invent a review-plan ID.
-  Pause/resume keeps the chosen mode for that exercise. A new exercise starts
-  automatically. Paused results are not backfilled on resume.
-- Closing/replacing a tab drops session context; persisted outbox entries remain.
-- Already-visible results are deliberately ignored. Only observed answer
-  transitions produce attempts, as before.
+拡張の画面から、現在の演習の記録を一時停止・再開できます。
+停止中の解答や、記録開始前から表示されていた結果は、後から記録に追加しません。
 
-Daily sets retain the publisher's verified `追加日が古い順` order. The extension
-never changes the site's sort preference or set membership.
+## 通常学習と復習の区分
 
-See [ADR-0017](../../docs/ADR/0017-automatic-qb-capture.md) for the authorization,
-classification evidence, and migration policy.
+確認済みの復習セットから始めた演習を「復習課題」、それ以外を原則「通常学習」として記録します。
+問題番号やセット名が似ているだけでは復習にしません。
+収集サービスが、移動元のセットIDを日次計画と照合します。
 
-## Reviewed DOM contract
+セットIDが不正な場合や照合に失敗した場合は「判定未確認」になります。
+「通常学習」「復習課題」ボタンで、現在の演習の区分を手動選択することもできます。
+選択は以後の解答に適用され、保存済みの解答は変わりません。
+新しい演習では改めて自動判定します。
 
-The production adapter implements only the reviewed, observed `/quiz` DOM
-contract. Selectors and class tokens are centralized in the QB quiz adapter.
-It requires exactly one supported question key and question card, plus exactly
-two nested ancestors matching the reviewed quiz-root selector. The closer
-ancestor is the functional root and the other is the observed outer layout
-wrapper. The card must contain exactly four or five option buttons, the two
-counts observed on supported QB pages. No result marker in
-the functional root means pending; once a result marker appears, selected-option
-markers must be internally consistent. With a non-empty selection,
-every `bg-qb-sky` element must partition into either an exact correct badge or
-one exact reviewed progress fill per option; correct-option badges must also
-match the reviewed direct-first-child structure. Main/key/card
-ambiguity, a missing or unexpected root-ancestor count, an option count other
-than four or five, inconsistent selected markers, or changed required structure is
-Unsupported and emits no event.
+復習セットのリンクから演習を始めると、計画との対応を保持できます。
+問題への直接リンクや移動元が失われた演習は、原則「通常学習」になります。
+詳しい判定条件は [ADR-0017](../../docs/ADR/0017-automatic-qb-capture.md) を参照してください。
 
-QB displays examinations below 100 with a compact two-digit prefix, such as
-`80A1`, while the V1 contract requires a three-digit canonical prefix. The
-adapter accepts only that exact compact two-digit display form and passes its
-zero-padded equivalent, such as `080A1`, through the shared normalizer. It does
-not infer a missing section, question number, separator, or any other invalid
-identifier form.
+## 保存状態の見方
 
-Capture begins from an observed pending state. Only a transition from pending to
-a supported resolved state for the same question may create an event. An already
-resolved page at capture start is not historical evidence of a new answer and is
-not emitted. A resolved state with no selected option is treated as
-`resolved_without_selection`; it is terminal for that question but is not
-converted to `incorrect`, `unknown`, or an `AttemptEventV1`.
-Once the adapter has confirmed a visible result, zero selected options, and at
-least one exact correct badge, it returns this state before deriving or
-validating a correct-option index set. The sky-marker partition and all five
-progress paths are still validated first, so a progress fill alone cannot be
-mistaken for evidence of a correct answer.
+| 表示 | 意味 |
+|---|---|
+| `Capture` | 問題画面の取得状態。`unsupported` は対応していない画面構造 |
+| `Outbox` | 収集サービスへの送信待ち件数 |
+| `Delivery` | 収集サービスへの送信状態 |
+| `Last code` | 最後に発生した診断コード |
+| `Capture issue` | 最後に発生した画面解析・解答取得のエラー |
+| `直近の記録` | 送信待ちと送信済みの記録。新しい順に最大99件 |
 
-When a different supported question key appears in the same document, capture
-continues with a new pending-to-resolved cycle. The extension has no
-configured question-count limit; the same consented document may continue
-recording for as many supported question transitions as the user performs.
+Outboxが0なら、受け付けた解答を同じPCの収集サービスへ保存済みです。
+Notion同期の完了は[収集サービス側で確認](../../docs/NOTION_SYNC.md#動作を確かめる)します。
+直近99件という表示上限は、記録できる解答数の上限ではありません。
 
-The adapter temporarily derives correct-option indices only to compare their set
-with the selected-option set. Correct-option indices are not returned by the
-adapter, included in a message or payload, stored in the outbox, or logged.
+収集サービスが停止している間は、Chrome内に送信待ちを保持します。
+再起動後の自動再送、または `Retry delivery` で送信を再開できます。
+Chromeの保存容量には上限があるため、長期間送信できないままの使用は避けてください。
 
-Older QB result pages may expose one reviewed four-cell summary table instead
-of the explanation-title marker. For that exact structure, the adapter reads
-only the single status cell whose direct text is exactly `正解` or `不正解` and
-maps it to the allowed result enum. It still requires a consistent non-empty
-selected-option marker before creating an attempt; an unselected result remains
-`resolved_without_selection`. The table's other cells are never read or stored.
-The table may mount before its status text during normal rendering; until an
-exact allowed status appears, the adapter remains pending and cannot emit an
-event. A mounting reviewed table also keeps precedence over any early
-explanation-title marker so progressive rendering cannot break the required
-pending-to-resolved sequence.
-When the reviewed status table and explanation-title markers coexist, the exact
-status cell is the preferred result evidence. If that legacy structure is not
-resolved, the existing explanation-marker path remains the fallback.
+## 取得する情報と画面へのアクセス
 
-## Popup diagnostics and recent records
+保存するのは、問題番号、選択した番号、正誤、時刻、学習区分と取得元の情報です。
+問題文、選択肢本文、解説、画像、正答番号は保存しません。
+拡張は画面を読み取りますが、解答ボタンの操作、画面移動、評価、ノート、ブックマーク、問題セットの変更は行いません。
 
-The popup reads status only through the extension-page-only background message
-route; it does not read `chrome.storage` directly. `Last code` reports the most
-recent extension diagnostic. `Capture issue` retains the most recent DOM or
-candidate failure as a finite allowlisted code such as
-`capture_unsupported_dom:quiz_root_count_invalid`, even after capture later
-returns to observing. Neither field includes DOM text, HTML, a URL, or a
-free-form error message.
+QBのHTTPSページ全体で画面移動を検出し、解答の読み取りは最上位フレームの `/quiz` に限定します。
+セット画面から問題画面へ移る際にページ全体が再読み込みされなくても、記録を開始します。
+移動元の判定に必要なセットIDなどは一時保存し、URL全体は保存しません。
 
-Invalid question-key structure is classified without exposing its source text.
-The finite codes distinguish invalid direct text, a valid key split across
-presentational descendants, one bounded descendant candidate, no candidate,
-and ambiguous candidates. These classifications are diagnostic only: every
-case remains Unsupported and cannot generate an attempt event.
+Chromeの追加権限は `storage`、`alarms`、同じPCの収集サービスへの通信です。
+`tabs`、`webNavigation`、Cookie取得、通信傍受の権限は使用しません。
+詳細は [保存データとセキュリティ](release/SECURITY_AND_PRIVACY.ja.md) を参照してください。
 
-Correct-marker diagnostics validate every marker before reporting a complete
-mapping to reviewed options. A marker that is itself an option or has no or
-multiple option ancestors is rejected separately. When repeated markers map to
-the same option, diagnostics continue scanning every marker and deduplicate by
-the option element. A finite diagnostic reports only whether that option set
-equals, strictly contains, is strictly contained by, is disjoint from, or
-partially overlaps the selected-option set; partial overlap is also separated by
-equal or different cardinality. Every relation remains Unsupported until the
-repeated-marker contract is explicitly reviewed. The older generic differs code
-remains readable for stored-state compatibility but is no longer emitted. No
-diagnostic exposes a correct option index, count, or page content.
+## 画面解析の実装
 
-The correct badge is not identified by `bg-qb-sky` alone. It must be a `DIV`
-with the exact reviewed class-token set and, for a selected answer, the direct
-first element child of its option. The other observed `bg-qb-sky` elements are
-accepted only as exact progress fills on the exact reviewed three-element path,
-one per option. Missing, duplicate, drifted, extra-class, wrong-tag, or
-unclassified sky elements are Unsupported.
+画面解析は、QBの対応する表示構造と選択状態を検証してから解答を作ります。
+問題番号と問題カードが一つずつあり、カードの祖先構造、4個または5個の選択肢、選択状態と結果表示が整合していることを確認します。
+不一致や曖昧な表示では記録を作らず、有限の診断コードを返します。
 
-`直近の記録` combines the existing outbox and delivered-event cache and shows
-only question key, answered-at timestamp, result, selected one-based indices,
-and delivery state. The list is newest-first and bounded to 99 display rows;
-this is not a capture, outbox, or per-document question limit. Event IDs,
-provenance, correct-option indices, URLs, and QB content are not exposed. A
-storage read failure is shown as unreadable state rather than as proof that the
-history is empty.
+- 未解答から結果表示への遷移と、実際の解答操作を区別します。同じ結果の再描画を新しい解答として数えません。
+- 選択肢の選択がない結果は `resolved_without_selection` とし、誤答には変換しません。
+- 古い回の問題で表示される `80A1` などは、共通のデータ形式に合わせて `080A1` に正規化します。
+- 対応する旧形式の結果表では、正誤を示すセルだけを読みます。
+- 正答の選択肢番号を一時的に比較に使う場合も、メッセージ、保存データ、診断出力へは含めません。
 
-Stored version-0.1.0 diagnostic codes from the earlier popup-triggered capture
-flow remain readable so an upgrade cannot invalidate or strand an existing
-outbox. The current runtime does not emit those legacy codes.
+診断コードにはHTMLや問題の内容を含めません。
+未対応の表示を調べる場合は、`Capture issue` のコードと該当する解析処理を確認してください。
 
-## Safety boundary
+## 収集サービスとの通信
 
-- The extension only reads answer DOM and observes mutations in an authorized `/quiz` session. It
-  never clicks, submits, dispatches page events, navigates, changes ratings,
-  edits notes or bookmarks, or modifies a problem set.
-- It never collects or stores question text, option text, explanation text,
-  images, page HTML, cookies, tokens, credentials, or private API data.
-  Navigation URLs are parsed transiently; full URLs are never persisted or sent to the collector.
-- It stores only a normalized question key, explicit one-based selected-option
-  indices, result, detection time, and the fixed V1 provenance and quality
-  fields required by `AttemptEventV1`. The separate study context records the
-  automatically determined purpose and, for verified review sessions, its plan ID.
-- Messages from content scripts are treated as untrusted. The worker validates
-  the exact sender tab, window, top frame, document identity, origin, pathname,
-  consent state, and message shape before accepting capture data.
-- The manifest does not request `tabs`, `webNavigation`, `activeTab`, or
-  `scripting`. QB is not listed in `host_permissions`; static content-script
-  matching is the only page access grant. Persistent permissions are limited to
-  `storage`, `alarms`, and loopback collector access.
-
-The synthetic fixture adapter remains dependency-injected by tests only and is
-not reachable from the distributed entrypoint.
-
-## Collector profile
-
-The default endpoint is:
+既定の接続先は次のとおりです。
 
 ```text
 http://127.0.0.1:8765/v1/attempt-events
 ```
 
-Only loopback HTTP endpoints with a configurable port and the exact path
-`/v1/attempt-events` are accepted; credentials, query strings, fragments,
-redirects, cookies, and authorization headers are rejected. The extension never
-accesses Google Sheets. It deletes an event from the outbox only after a 2xx JSON
-acknowledgement with the same `event_id` and a status of `inserted` or
-`duplicate`. Network failures, HTTP 429, and 5xx responses retain the event for
-retry.
+接続先のポートは拡張画面で変更できます。
+学習区分を伴う解答と復習セットの照合には、同じ収集サービスの専用経路を使います。
+認証情報、URLの追加パラメーター、リダイレクトは受け付けません。
 
-`services/history-collector` now implements this profile as a first-party local
-server backed by the append-only SQLite storage boundary. The profile remains
-local-only and unauthenticated rather than an accepted external HTTP API.
-Another local process that owns the configured port could still receive a
-payload and forge an acknowledgement. `storage.local` also has a finite quota;
-indefinite offline capture cannot be guaranteed after the quota is exhausted.
+同じイベントIDについて `inserted` または `duplicate` の保存応答を受け取った後に、Outboxから解答を取り除きます。
+通信失敗、HTTP 429、5xx応答では同じIDを保持して再試行します。
+この通信には認証がないため、同じPCで別のプログラムが待ち受けポートを先に使用した場合、そのプログラムへの誤送信や偽の保存応答を防げません。
+収集サービスを外部ネットワークへ公開しないでください。
 
-## Build and verify
+## 更新と制限
 
-From the repository root:
+- 更新はChromeへ読み込ませた同じフォルダで行います。拡張を削除すると、Chrome内の送信待ちも失われます。
+- 更新後は拡張と既に開いているQBタブを一度再読み込みします。以後のセット画面から問題画面への移動では再読み込みは不要です。
+- Notionからの復習セット照合がタイムアウトした演習は、未分類のまま記録される場合があります。後の演習で照合できても、保存済みの区分は書き換えません。
+- Chrome内への保存応答を受け取る前にタブを閉じると、解答を保存できない場合があります。
+- QBの表示構造が変わると取得を停止する場合があります。取得できなかった解答を推測して追加することはありません。
+
+## 開発と配布
+
+拡張単体の検証はリポジトリ直下で実行します。
 
 ```sh
-pnpm install --frozen-lockfile
 pnpm verify:browser-extension
 ```
 
-The loadable unpacked extension is written to `apps/browser-extension/dist`.
-Automated tests use content-free synthetic HTML and mock Chrome/HTTP boundaries;
-they do not connect to the live QB site.
+テストには合成HTML、模擬Chrome API、一時的な収集サービスを使います。
 
-## Trusted-user macOS package
-
-After committing and verifying a clean worktree, create the private beta package
-from the repository root:
+macOS向けのZIPは、変更をコミットした作業フォルダから生成します。
 
 ```sh
 pnpm release:trusted
 ```
 
-The command force-rebuilds all TypeScript project outputs, then writes an
-ignored ZIP and its external SHA-256 file under `artifacts/`. The ZIP contains
-only the six allowlisted unpacked-extension files, a standalone Node.js
-collector bundle, forward-only SQL migrations, runtime dependency license
-texts, checksums, and Japanese install/update/remove instructions. It does not
-contain a database, outbox, credentials, source maps, repository metadata, or
-`node_modules`.
-
-Packaging normally refuses a dirty worktree so `RELEASE.json` can identify one
-exact source commit. `--allow-dirty` exists only for pre-commit packaging tests;
-do not distribute an artifact produced with that option. This is an unpacked,
-trusted-user package and is not a Chrome Web Store release.
-
-## Known limitations
-
-- An already-open QB tab needs one reload after updating the unpacked extension.
-  Subsequent set-to-quiz SPA transitions do not require a reload.
-- A direct quiz link opened without its originating set, or after browser-session
-  context was lost, cannot prove which set it came from. Use the set link to
-  preserve review attribution.
-- A first remote Notion registry read that exceeds the local endpoint timeout
-  leaves that exercise unclassified. The completed background read can identify
-  the set on a later exercise; existing attempt evidence is never rewritten.
-- Results visible before automatic recording starts or after pausing are ignored.
-  A candidate not yet acknowledged by background storage can still be lost if
-  its document/route closes during a failed transfer. Persisted outbox entries
-  remain durable and are retried.
-- Compatibility is limited to the reviewed DOM contract. A changed QB structure
-  stops candidate creation with an allowlisted diagnostic, rather than guessing.
+`artifacts/` に拡張、収集サービス、データベース移行処理、導入手順、依存ライブラリのライセンス、チェックサムをまとめます。
+`RELEASE.json` が対応するコミットを示せるよう、未コミットの変更がある場合は生成を拒否します。
+`--allow-dirty` は配布前の生成処理の検査用です。
+Chrome Web Store経由の配布ではなく、自動更新はありません。

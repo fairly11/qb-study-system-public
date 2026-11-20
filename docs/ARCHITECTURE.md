@@ -1,65 +1,89 @@
-# Architecture
+# システム構成とデータの流れ
 
-## 全体像
+## 記録から復習まで
 
 ```text
-browser-extension ──AttemptEventV1──┐
-                                    ├─> history-collector ─> SQLite (source of truth)
-external baseline ─HistorySnapshotV1┘                             │
-                                                                  v
-                                                        review-engine
-                                                                  │
-                                                QuestionStateV1 / ReviewPlanV1
-                                                                  v
-                                                           set-builder
+Mac / Windows のChrome拡張
+    ↓ 拡張内の送信待ち
+同じPCの収集サービス → SQLite → Notion
+                                  ↑
+iPhone / iPad のSafari拡張         │
+    ↓ 拡張内の送信待ち             │
+共有保存領域のSQLite ──────────────┘
 
-SQLite ──future one-way summary──> Google Sheets (reporting only)
+Notionの履歴と手動設定
+    ↓
+復習モデル → 候補選定 → 日次計画を保存
+                           ↓
+                  QBの画面でセットに登録
+                           ↓
+                問題番号と順序を照合・リンク保存
 ```
 
-外部baselineは将来の入力境界を示す概念であり、この初期版に取得処理はありません。
+Notion同期を有効にした端末は、Notionを共通の履歴として参照します。
+各SQLiteには送信待ちと控えを残します。
+収集サービスを単独で使い、Notion同期を設定しない場合は、そのPCのSQLite内で完結します。
+Windows記録専用アプリでは、記録を始める前にNotionの設定が必要です。
 
-## 依存方向
+## コンポーネントの役割
 
-- `apps/*` と `services/*` は必要な公開packageだけへ依存します。
-- `packages/contracts` と `packages/question-normalizer` は下位の共有基盤です。
-- `packages/storage` はcontractsを保存するadapterです。
-- `packages/review-engine` はI/Oを持たない純粋計算packageとし、storageをimportしません。
-- package間依存は `workspace:*` とし、循環依存を禁止します。
+| コンポーネント | 入力と役割 |
+|---|---|
+| Chrome拡張 | QB画面から解答を取得し、同じPCの収集サービスへ送信 |
+| 収集サービス | データ形式を検証し、SQLiteへ保存。Notion同期と復習セットの照合も担当 |
+| Safari拡張とiOSアプリ | 拡張から共有保存領域へ転送し、Swift側からNotionへ同期 |
+| Windows記録専用アプリ | 収集サービスの起動、接続設定、保存と同期の状態表示 |
+| `review-engine` | 渡された履歴と設定から記憶状態と復習候補を計算 |
+| `set-builder` | 登録予定の問題一覧を作り、実際の登録結果と照合 |
 
-## データフロー上の不変条件
+復習エンジンはデータベースやネットワークへ直接アクセスしません。
+履歴の読み取り、計画の保存、外部への反映は収集サービス側で行い、計算部分を単独で検証できるようにしています。
+`set-builder` 自体はブラウザを操作しません。
 
-1. 入力境界でJSON Schemaと意味制約を検証します。
-2. 問題番号は共通normalizerで正規化し、推測できない形式を拒否します。
-3. exactな瞬間はoffset必須で受け、保存時はUTC `Z` とします。
-4. date-only値は `YYYY-MM-DD` と `Asia/Tokyo` を保持し、時刻へ変換しません。
-5. attemptとsnapshotは別API・別table・別discriminatorのまま保存します。
-6. review-engineは元証拠を書き換えません。
-7. set-builderと将来の同期はrun単位で結果を追記し、SQLiteの履歴を正本とします。
+## 保存の確認と再送
 
-## ストレージ
+各解答は一意の `event_id` を持ち、再送時にも同じIDを使います。
+同じID・同じ内容は既存記録として扱い、同じIDで内容が異なる場合は保存を拒否します。
+本当に同じ問題を解き直した場合は新しいIDになるため、前の解答に統合されません。
 
-SQLite接続は `StorageDriver` 境界の内側に置きます。初期adapterはNode.js 24の `node:sqlite` を使用します。DBはrepoやiCloud同期対象ではなく、原則として利用者のApplication Support配下へ置きます。
+Chrome拡張は、収集サービスから保存済みの応答を受け取ってから送信待ちを削除します。
+Safari拡張も、共有SQLiteへの保存確認前には転送待ちを削除しません。
+Notionへの同期では作成予定を先に永続化し、応答が不明なら既存行を読み戻します。
+見つからないことだけを理由に作成を繰り返さないため、通信障害時には確認待ちが残ることがあります。
 
-Migrationはforward-onlyの連番SQLです。各migrationのSHA-256を記録し、番号欠落、適用済みchecksumの変更、部分適用をfail closedにします。attempts、選択番号、history snapshots、review plans/items、set/sync runs、system logsはUPDATE/DELETE拒否triggerで追記専用にします。`question_states` だけは再計算結果のupsert対象として更新可能に保ちます。
+## 画面と通信の境界
 
-review planはitems/reasonsを含めて1 transactionで追加します。set/sync runの行は終了状態が確定した時点で1回だけ追加し、途中経過は構造化された追記専用logへ記録します。再試行は既存runを更新せず、新しいrun IDを使います。
+Chrome拡張はQBのHTTPSオリジンに画面移動の検出処理を配置し、解答の監視は `/quiz` の最上位フレームで行います。
+送信元のオリジン、文書ID、現在の画面を照合し、古いタブの通知を新しい演習へ混ぜません。
+自動開始と学習種別の判定は [ADR-0017](ADR/0017-automatic-qb-capture.md) に記載しています。
 
-## コンポーネントの実行境界
+PCの収集サービスは `127.0.0.1` でのみ待ち受けます。
+解答の保存と学習区分付きの保存、復習セットの照合に経路を分けています。
+Notionの接続キーは収集サービス側だけが使用し、Chrome拡張へ渡しません。
+iOSでもキーはKeychainに保存し、Safari側のJavaScriptへ渡しません。
 
-- browser-extensionはChrome MV3のstatic bootstrapをQBのdefault HTTPS port上のexact `/quiz` targetへ限定し、document単位の明示同意後だけproduction DOM adapterとcapture用`MutationObserver`を開始します。tab更新時はevent順序ではなくexact document identityをprobeして同意sessionを照合し、同じdocument内では問題数に依存せずcaptureを継続します。outboxは `storage.local`、ephemeral consentは `storage.session` に分離し、collector通信はloopbackだけです。popupはextension-page-only routeからallowlist済み診断codeと、outbox・送信済みcache由来のsafeな直近記録summaryだけを取得します。詳細は [ADR-0012](ADR/0012-browser-extension-qb-capture-consent.md) に従います。
-- history-collectorだけがattempt append APIの利用者になります。Node.js 24の
-  local serverはIPv4 `127.0.0.1`へだけbindし、exact
-  `POST /v1/attempt-events`でstrict `AttemptEventV1`を受けます。既存storage
-  transactionが`inserted`または`duplicate`を返した後だけ、同じevent IDの
-  exact ACKを返します。詳細は [ADR-0013](ADR/0013-local-loopback-history-collector.md)
-  に従います。
-- review-engineは受け取った値から結果を返し、DB、ネットワーク、環境変数を直接読みません。
-- set-builder初期版はpackage骨格だけで、外部サイト操作を行いません。
+## データ形式と依存関係
 
-## バージョニング
+TypeScript型とJSON Schemaは `packages/contracts` にまとめています。
+受信時には形式だけでなく、日時、識別子、関連するイベントIDの一致なども検証します。
+問題番号の表記は `packages/question-normalizer` で統一します。
 
-公開wire contractは `schema_version` と固定 `record_type` を持ちます。V1公開後の破壊的変更はV1を上書きせずV2として追加します。生成済みschemaの差分は検証対象です。
+- アプリとサービスは、各パッケージが公開する入口を使用します。
+- パッケージ間の依存は `workspace:*` で指定します。
+- `review-engine` は `storage` に依存しません。
+- 既存のV1形式を壊す変更は、新しい版と移行手順を追加して行います。
 
-## Worktree並行開発
+詳しい項目と互換性の規則は [データ形式](DATA_CONTRACTS.md) を参照してください。
 
-単一commitを基点に、4コンポーネントを別branch/worktreeで開発できます。contractsの変更は独立branchで先行合意し、利用側が独自に変更しない運用とします。具体的コマンドは [DEVELOPMENT.md](DEVELOPMENT.md) に記載します。
+## SQLiteの更新
+
+SQLiteへの操作は保存層に集約し、Node.js側では `node:sqlite` を使用します。
+データ構造の変更は連番のSQLファイルで管理します。
+適用済みファイルのハッシュを記録し、内容の改変や番号抜けがあれば更新を停止します。
+
+元の解答、選択番号、取得時点の状態、計画、同期の記録は追記専用です。
+`question_states` は再計算した状態を保存するため、更新を許可します。
+計画とその項目は一つのトランザクションで保存し、一部だけが残らないようにします。
+
+運用するSQLiteファイルはソースコードと別の場所に置き、端末間のファイル同期対象にはしません。
+更新と復旧の手順は [開発手順](DEVELOPMENT.md) と [Notion同期](NOTION_SYNC.md) を参照してください。

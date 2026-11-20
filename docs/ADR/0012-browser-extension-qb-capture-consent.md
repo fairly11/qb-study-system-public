@@ -1,86 +1,112 @@
-# ADR-0012: QB取得のdocument単位同意とfail-closed境界
+# ADR-0012: ページごとの記録開始と、取得条件の検証
 
-- Status: Accepted
-- Date: 2026-08-26
+- 状態: 一部置換。自動記録と画面移動への追従は [ADR-0017](0017-automatic-qb-capture.md) を参照
+- 決定日: 2026-08-26
 
-## Context
+## 背景
 
-ADR-0010では、QB画面からの公開された取得手段、最小Chrome権限、および画面上の選択肢から1始まりindexへの対応規則を未解決としていました。その後、対象を `https://qb.medilink-study.com/quiz` の公開画面DOMに限定した観察により、問題文、選択肢本文、解説、画像、認証情報、非公開APIを扱わずに解答結果を判定できる最小DOM contractが得られました。
+QBの画面から解答結果を記録するには、問題番号、選択した位置、正誤を一意に判定する必要がある。
+問題文や選択肢本文を読む必要はない。
+また、利用者が選択した番号と、正誤比較のためだけに使う正答の番号は分けて扱う。
 
-一方、static content scriptは対象documentへ自動配置されます。QB上で通常どおり解答する体験と、利用者がdocumentごとに記録開始を選べる境界を両立し、同意前のDOM取得を防ぐ必要があります。また、`AttemptEventV1`が要求する選択済みoption indexと、正誤比較のためだけに必要な正答option indexを分離しなければなりません。
+初期の拡張機能では、ページごとに記録を開始する操作を求めた。
+この文書はその設計を記録している。
+記録開始の操作と配置先はADR-0017で変更されたが、入力の検証、正答番号の非保存、送信待ちの保持は現在も継続する。
 
-## Decision
+## 当初の配置と権限
 
-### 配置対象と最小権限
+- Manifest V3のcontent scriptを、`https://qb.medilink-study.com:443/quiz` と `https://qb.medilink-study.com:443/quiz?*` へ配置する。
+- 実行は文書読み込み開始時の最上位フレームに限定し、ページのJavaScriptと分離した領域を使う。
+- ページ側と背景処理の双方で、送信元、`/quiz` というパス、最上位フレームを確認する。
+- API権限は `alarms` と `storage` のみ。`tabs`、`webNavigation`、`activeTab`、`scripting`、cookie、webRequestの権限は要求しない。
+- `host_permissions` は同じ端末の収集サービスに接続する `http://127.0.0.1/*` のみとする。
+- 収集先はポートだけを設定可能とし、パスは `/v1/attempt-events` に固定する。
 
-- Manifest V3のstatic content scriptを `https://qb.medilink-study.com:443/quiz` とquery付きURL用の `https://qb.medilink-study.com:443/quiz?*`、`document_start`、top frame、isolated worldに限定します。
-- content scriptとservice workerの双方でexact origin `https://qb.medilink-study.com`、exact pathname `/quiz`、top frameを検証します。queryとfragmentは判定にも記録にも使いません。
-- API permissionは `alarms` と `storage` だけとします。`tabs`、`webNavigation`、`activeTab`、`scripting`、cookie、webRequest権限を要求しません。
-- QB hostを `host_permissions` に追加しません。`host_permissions` はloopback collector用の `http://127.0.0.1/*` だけとします。
-- collector endpointはportだけを設定可能とし、pathを `/v1/attempt-events` に固定します。Google Sheetsへ直接アクセスしません。
+## 当初の記録開始操作
 
-### document単位の同意
+開始前のcontent scriptはページ識別子の生成、通知の受信設定、READY通知だけを行い、解答を取得しない。
+背景処理はREADY通知のタブ、ウィンドウ、表示状態、フレーム、文書識別子、送信元、パスを検証する。
+表示中の新しい文書ごとに `chrome.action.openPopup()` で開始確認を一度だけ表示する。
+別タブで読み込まれたページは、表示中になってから同じ文書であることを再確認する。
 
-content scriptは対象documentの開始時に配置されますが、同意前にはQB DOMをqueryせず、capture用`MutationObserver`を作らず、candidate、outbox、collector処理を開始しません。同意前のbootstrapはpage-session IDの生成、同意command listenerの登録、およびREADY通知だけを行います。workerが一時的にunavailableなら同じIDのREADYを再通知し、document identityによる重複排除で自動popupを最大1回に保ちます。
+開始確認を出せない場合は、タブに `!` のバッジと「QB記録: 記録開始の確認が必要」を表示する。
+文書に到達できない、古い文書である、保存領域を読めないといった場合は記録を開始しない。
+操作ごとの扱いは次のとおりとした。
 
-service workerはREADY senderのtab、window、active state、top frame、document identity、origin、pathnameを検証します。activeな新規documentごとに、Chrome 127以降の `chrome.action.openPopup()` で同意popupを1回だけ自動提示します。background tabではactiveになるまで待ち、activeになった時点で同じdocumentであることを再確認します。popup API呼出し直前にもtarget tabのactive状態を再確認します。API欠落またはrejectでは、そのtabに `!` badgeと `QB記録: 記録開始の確認が必要` titleを設定し、captureを開始しません。documentがstaleまたは到達不能ならsessionを破棄してbadge/titleを消し、storage失敗時も同意を推定せずcaptureを開始しません。workerのcapture core準備後にcontent scriptへのstart指示が失敗した場合もbadge/titleを設定して手動確認を促します。
+| 操作 | 動作 |
+|---|---|
+| 記録を開始 | 表示中の同じ文書への開始要求が成功した場合だけ取得を始める |
+| ポップアップを閉じる | 開始も拒否も行わず、同じ文書への自動表示は繰り返さない |
+| 今回は記録しない | 自動表示を抑止する。後から手動で開始することはできる |
+| 別文書への移動・タブ終了 | 開始状態を破棄する |
+| 同じ文書内の問題切替 | 開始状態を保持する |
 
-Chromeのtab更新通知はdocument replacementとの順序を保証する同意証拠として扱いません。`loading`と`complete`の両方を照合契機とし、その時点で保存されているexact `documentId`、またはその代替となるpage-session IDへprobeします。同じ `/quiz` documentが応答すれば同意、capture状態、自動popup済み状態を変更せず保持し、応答不能または対象外locationの場合だけfail closedで破棄します。READYが更新通知より先でも後でも、この直列化された照合により新しいsessionを遅延通知で消去しません。tab closeとtab replacementはprobeせず無条件に破棄します。
+タブ更新通知だけでは文書の置換を確定しない。
+`loading` と `complete` の通知時に、保存済みの `documentId`、または代替のページ識別子を持つ文書へ照会する。
+同じ問題画面から応答があれば状態を維持し、応答不能や対象外画面の場合だけ破棄する。
+タブ終了とタブ置換は照会せず破棄する。
+この照合により、遅れて届いた通知で新しい文書の状態を消さないようにする。
 
-同意操作の意味は次のとおりです。
+開始状態は `storage.session`、送信待ちと配信状態は `storage.local` に分け、どちらも `TRUSTED_CONTEXTS` に限定する。
+ページからの通知は、形式、送信元、文書識別子、開始状態を背景処理で再検証する。
 
-- 「記録を開始」は、activeかつcurrentな同じdocumentへのstart commandが成功した場合だけcaptureを開始します。
-- popupを閉じるだけの操作は同意でも拒否でもなく、何も変更しません。同じdocumentへの自動再提示は行わず、利用者はactionを手動で開けます。
-- 「今回は記録しない」は同じdocumentへの自動提示を抑止しますが、captureを開始しません。利用者が同じdocumentでpopupを手動で開き、後から記録開始を選ぶことはできます。
-- verified new document、対象外location、tab close、tab replacementへ同意を引き継ぎません。同じdocument内の `/quiz` 更新では同意を保持します。
+## 画面構造の検証
 
-同意状態はrestricted `storage.session`、outboxと配信状態はrestricted `storage.local`へ分離し、どちらも `TRUSTED_CONTEXTS` に限定します。content scriptから届くREADY、candidate、statusはuntrusted inputとして、message shape、sender、document identity、同意状態をservice workerで再検証します。
+DOM（ページ内の要素構造）を読む処理はアダプターに集約する。
+当初の対応構造は次の条件を満たすものに限定した。
 
-### 観察済みDOM contract
+- `span.font-semibold.text-qb-blue` の直接のテキストから、正規化できる問題番号が一件だけ得られる。
+- その祖先に問題カードが一件あり、カードを囲む `flex flex-col gap-2` の祖先が二件ある。近い方を問題領域、遠い方を外側のレイアウトとする。
+- カード内の `button.text-left` が五件あり、DOM上の順序を1始まりの選択番号へ対応付けられる。
+- `border-qb-green` と `text-qb-green` の両方を持つ選択肢だけを選択済みとする。
+- 問題領域内の `[data-testid="explanation-box-title"]` を結果表示の目印とする。
+- カード内の全 `bg-qb-sky` 要素が、既知の正答バッジか、既知の親子関係にある進捗表示へ分類できる。
 
-production adapterのselectorとclass tokenを1か所に集約し、次の観察済み構造だけをsupportします。
+要素の欠落、重複、未知の配置、クラスの不一致があれば、未対応の構造として扱う。
+内側の問題領域が見つからないときに外側へ検索範囲を広げない。
+外側だけにある結果表示を、現在の問題の結果として扱わない。
+進捗表示は選択肢ごとに一件必要とし、進捗表示だけを正答の証拠にしない。
 
-- `span.font-semibold.text-qb-blue` のdirect textから厳格な正規形question key候補を得て、exact 1件を要求する
-- その祖先として `rounded-lg bg-white p-3 sm:p-4 flex flex-col gap-3` のquestion cardをexact 1件要求する。cardを含む `flex flex-col gap-2` 祖先は観察済みどおりexact 2件を要求し、近い方をfunctional quiz root、遠い方を外側layout wrapperとする
-- question card内の `button.text-left` をoptionとし、exact 5件の場合だけDOM順を明示的な1始まりindexへ対応させる
-- `border-qb-green` と `text-qb-green` の両方を持つoptionだけを選択済みとする
-- quiz root内の `[data-testid="explanation-box-title"]` の出現をresolved markerとする
-- question card内の全 `bg-qb-sky` 要素を、class token集合とtagが完全一致する正答badge、または観察済みのexact parent pathにあるprogress fillへ完全に分類する。progress fillは各optionにexact 1件を要求し、未分類、欠落、重複、path driftをUnsupportedとする
-- 選択済みoptionが0件でresult markerと1件以上のexact正答badgeがあれば、正答index集合を導出せず `resolved_without_selection` とする。progress fillだけでは正答badgeの存在証拠にしない
-- 選択済みoptionが1件以上の場合だけ、各optionのdirect first childにあるexact正答badgeを厳格に検証し、正答集合と選択済み集合が一致すれば `correct`、一致しなければ `incorrect` とする
+選択済みの選択肢がある場合は、各選択肢の先頭の子要素にある正答バッジを検証する。
+正答と選択済みの集合が一致すれば `correct`、異なれば `incorrect` とする。
+選択がないまま結果表示と正答バッジがある場合は `resolved_without_selection` とし、解答イベントを作らない。
 
-main、key、cardは各1件、cardを含むreview済みroot祖先はexact 2件、optionは5件を要求します。functional root内のresolved markerが0件ならpending、1件以上ならresolved候補です。main、key、cardの件数不足・曖昧さ、root祖先の欠落または2件以外、不正配置、resolved時のselected marker pair不整合はUnsupportedです。resolved候補では全sky markerの完全分類と各optionのexact progress pathを先に検証します。選択済みoptionが1件以上の場合はcorrect badgeの欠落、同じoption indexへの重複、不正配置もUnsupportedです。未選択の場合は1件以上のexact correct badgeの存在だけを確認し、correct index集合の導出より前に非記録状態へ遷移します。内側rootのclassが失われた場合に外側wrapperへfallbackせず、外側wrapperだけのresult markerも証拠にしません。resultやindexを推測で補いません。
+取得開始後に同じ問題の未解答状態から結果表示へ移った場合だけ、記録候補を生成する。
+開始時点ですでに結果が出ている画面は、新しい解答として記録しない。
+同じ文書で別の問題へ進んだ場合は取得を続け、問題数による上限は設けない。
+解き直しと再表示の判別を拡張した設計はADR-0017に記載する。
 
-capture開始後にpendingを観測し、同じquestion keyがresolvedへ遷移した場合だけattempt candidateを生成します。capture開始時にすでにresolvedな画面は新規解答の証拠にしません。resolved時に選択済みoptionが0件なら `resolved_without_selection` としてterminal扱いにし、`correct`、`incorrect`、`unknown`へ変換せず履歴化しません。terminal状態はquestion key単位であり、同じdocumentに別のsupported question keyが現れれば次のpending-to-resolved cycleを継続します。人工的な問題数上限は設けません。
+## 保存する情報
 
-正答option indexは正答集合と選択済み集合を比較するadapter内の一時値に限定します。adapterの戻り値、message、`AttemptEventV1`、outbox、診断ログへ含めません。選択済みindexは1始まりのsafe integer、1件以上、uniqueである場合だけV1へ渡します。
+`AttemptEventV1` の既存の型とJSON Schemaを維持する。
+正答番号はアダプター内での一時的な比較にだけ使い、戻り値、メッセージ、送信待ち、ログには含めない。
+選択済み番号は、1始まりの安全な整数が一件以上あり、重複していない場合だけイベントへ渡す。
+必要な値を得られない画面からはイベントを作らない。
 
-DOMとのinteractionはread-only queryと`MutationObserver`だけです。click、submit、event dispatch、navigation、value変更、およびrating、note、bookmark、問題setの変更を禁止します。
+画面に対する操作は、読み取りと変更の監視に限定する。
+解答のクリック、フォーム送信、ページ移動、入力値の変更は行わない。
 
-### 契約と配信
+## 送信と表示
 
-既存の `AttemptEventV1` V1型とJSON Schemaを変更しません。画面から安全かつ明確に取得できない `qb_question_id`、`session_id`、`source_device`、自己評価は省略し、既存fieldを別の意味に転用しません。必須のV1証拠を満たさないDOMからeventを生成しません。
+イベントは拡張内の送信待ちへ保存する。
+同じ端末の収集サービスから、同じ `event_id` の保存成功を確認してから取り除く。
+収集サービス停止、通信断、HTTP 429、5xxでは送信待ちを保持する。
+この通信仕様を実装した収集サービスは [ADR-0013](0013-local-loopback-history-collector.md) を参照する。
 
-eventは先にlocal outboxへ保存し、loopback collectorから同一`event_id`のexact success acknowledgementを確認した後だけ削除します。同一`event_id`の再送を許容し、停止、network failure、HTTP 429、5xxではoutboxへ残します。現在のloopback HTTP profileはextension-localで認証を持たず、history-collectorのaccepted public contractではありません。
+画面構造の不一致は `capture_unsupported_dom:<reason>` という定義済みの診断コードで伝える。
+コードにDOMの本文、HTML、URL、正答番号を含めない。
+ポップアップの状態・履歴取得は拡張機能自身のページだけに許可する。
 
-DOM contractの不一致は、自由形式detailではなく有限allowlistの `capture_unsupported_dom:<reason>` diagnostic codeとしてcontent scriptからbackgroundへ伝播します。codeはDOM text、HTML、URL、正答indexを含めません。popupのstatus/history routeはextension pageだけに許可し、content senderからの取得を拒否します。
+「直近の記録」は送信待ちと送信済みキャッシュを合わせ、問題番号、解答時刻、正誤、選択番号、配信状態を最大99件表示する。
+99件は表示上限であり、取得や保存の上限ではない。
+保存領域を読めない場合は、履歴ゼロと表示せず読み取り失敗を示す。
 
-popupの「直近の記録」は、既存outboxと送信済みcacheをbackgroundで統合し、question key、answered-at、result、選択済みindex、delivery stateだけをanswered-at降順で最大99件返します。これは表示上限であり、capture、outbox、同一document内の問題数には上限を追加しません。popupは`chrome.storage`へ直接アクセスせず、event ID、provenance、正答index、URL、DOM/問題内容を受け取りません。storage read失敗は空履歴と解釈せず、読み取り不能として表示します。
+## 制約と検証
 
-## Consequences
+当初の開始確認にはChrome 127以降のポップアップAPIを使った。
+ウィンドウを指定して表示するAPIのため、直前の確認と呼び出しの間に起きるタブ切替は排除できない。
+その場合も、一致する開始状態のないタブでは記録しない設計とした。
 
-- 一般配布での自動popup提示にはChrome 127以降が必要です。自動提示できない場合もaction badge/titleから手動開始できます。
-- 利用者は結果表示前、すなわちcaptureがpendingを観測できる時点で記録開始する必要があります。同意前に表示済みの結果は記録しません。
-- static content scriptはdocument navigation時にmatchingされます。非matching pathからSPA内遷移で `/quiz` に入った場合はreloadが必要になる可能性があります。
-- QB DOMが観察済みcontractから変わった場合はイベントを失う側へfail closedにします。再対応には新しい安全な観察、content-free fixture、adapter test、reviewが必要です。
-- popupを閉じただけの場合、同じdocumentへ2回目の自動提示はしません。利用者がactionを手動で開く必要があります。
-- `openPopup()`はwindow IDだけを受け取りtab IDを受け取らないため、直前確認とAPI呼出しの最終瞬間に発生するtab切替を原子的には排除できません。その場合も新しいactive tabには一致する同意tokenがなく、captureは開始しません。
-- loopback portを別processが保持した場合の受信やack偽装を防げません。外部配布向けcollector連携には認証とendpoint ownershipの別判断が必要です。
-
-## Verification
-
-fixture testでcorrect、incorrect、initial resolved抑止、rerender重複抑止、`resolved_without_selection`抑止、入れ子layout wrapper内の最寄りroot選択、外側wrapperだけのresult marker除外、未知DOMのUnsupported、具体的なallowlist済みreason code、正答index非露出を確認します。mock Chrome APIで同意前の完全不活性、document相関、自動popup、badge/title fallback、closeの無操作、decline後の手動start、`loading`/`complete`照合、READYとの両順序、popup非重複、popup statusのextension-page-only境界、最小permissionを確認します。100問を超える合成transitionでも全件を生成し、問題数上限がないことを回帰確認します。popup historyはsafe fieldだけを最大99件に表示し、保存失敗を空履歴と誤表示しないことを確認します。mock HTTP serverでcollector停止中のoutbox保持と復旧後の再送を確認します。テストは実QBサイトへ接続しません。
-
-## Relationship to ADR-0010
-
-このADRは、ADR-0010のうちbrowser取得手段、最小Chrome権限、選択肢から1始まりindexへの対応、およびbrowser manifestを無権限とするtemporary consequenceだけをsupersedeします。ADR-0010自体は書き換えません。Sheets同期、問題set作成、記憶modelその他の未解決事項は引き続きProposedです。
+未知の画面構造では記録を止めるため、QBの画面変更に伴って記録できなくなる可能性がある。
+対応を追加する際は、問題本文を含まない合成画面とテストで構造を確認する。
+正誤判定、初期結果の無視、再表示の重複防止、文書照合、開始状態、送信待ち、診断項目の制限を検証対象とする。

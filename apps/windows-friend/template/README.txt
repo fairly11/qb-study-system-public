@@ -1,45 +1,41 @@
-﻿QB Study Friend 1.1.0-preview
-Windows 11 + Google Chrome / 2026年10月29日
+QB Study Friend 1.1.0-preview
+Windows 11 + Google Chrome
 
+QBの解答を記録し、Notionに集めた履歴から毎日の復習候補を選ぶアプリです。
 最初に docs\manual.html を開いてください。
-Claudeを使う場合は docs\Claude-guide.html へ進みます。
+Claudeに導入や復習セット作成を任せる場合は docs\Claude-guide.html を参照してください。
 
 【はじめ方】
-1. ZIPを右クリックして「すべて展開」。
-2. install.cmd を通常ユーザーとしてダブルクリック（管理者として実行しない）。
-3. start.cmd をダブルクリック。記録用の黒いウィンドウは開いたままにします。
-4. Chromeの chrome://extensions で、%LOCALAPPDATA%\QBStudyFriend\browser-extension を読み込みます。
-5. 解答前に、手順に沿って自分のNotionに専用ページと保存先を作ります。
+1. ZIPを右クリックして「すべて展開」を選びます。
+2. install.cmd を通常ユーザーとしてダブルクリックします。管理者として実行しないでください。
+3. start.cmd をダブルクリックします。記録サービスのウィンドウは開いたままにします。
+4. Chromeの chrome://extensions から %LOCALAPPDATA%\QBStudyFriend\browser-extension を読み込みます。
+5. 解答前に、手順に沿ってNotionの専用ページと保存先を作ります。
 6. 普段の学習で1〜2問解き、PCとNotionに同じ記録があることを確認します。
 
-【Claudeへ渡すもの】
+【毎日の復習】
+WindowsとiPhoneから同じNotionへ同期した解答を使って、復習候補を計算します。
+日本時間の午前4時を1日の区切りとし、翌朝4時より前に復習期限を迎える問題を最大100問選びます。
+同じ日の候補は固定されます。QB上のセット作成と照合は、manual.html の手順に従って行ってください。
+
+【Claudeに操作を任せる】
 docs\CLAUDE_SETUP_PROMPT.txt：初回導入の依頼文。
-docs\CLAUDE_DAILY_PROMPT.txt：日々の候補計算・QBセット作成・完成確認の依頼文。
-内容を本人が読んでから、自分のClaudeへ貼り付けてください。
-有料Claude DesktopとClaude in Chromeを接続して使います。
-端末のファイル・Chromeを使う間は、PC、Claude Desktop、Chrome、記録サービスが動いている必要があります。
-このZIPだけでClaudeの接続や毎朝の予約は登録されません。
-任意のreview.cmd経路も同梱しています。start.cmdで起動後に利用し、秘密の接続キーをClaudeへ渡さず状態確認・候補計算・登録を行えます。
-引数とJSONの形式は docs\Claude-guide.html にあります。
+docs\CLAUDE_DAILY_PROMPT.txt：候補計算、QBセット作成、完成確認の依頼文。
+内容を確認してからClaudeへ貼り付けてください。
+WindowsのファイルとChromeを操作できる接続が必要です。利用条件は docs\Claude-guide.html を参照してください。
+コマンドを使う場合は、start.cmd で起動後、review.cmd から状態確認、候補計算、登録を行えます。
 
-【この版でできること】
-Chromeでの解答記録、自分のNotionへの保存、WindowsとiPhoneの同期済み記録からの復習候補計算。
-日次計画は日本時間04:00区切り。翌04:00より前に復習期限を迎える問題を最大100問選び、同じ日の候補は固定します。
-Claudeが同梱計算プログラムとQBの公開画面を操作する手順を含みます。
+【起動と停止】
+stop.cmd：終了を要求します。記録サービスのウィンドウが閉じ、操作画面が停止または未接続になったことを確認してください。
+autostart-on.cmd：YESを入力すると、Windowsへのログイン時に自動起動します。
+autostart-off.cmd：ログイン時の自動起動を解除します。
+ログイン時の自動起動と、復習セットを作る定期実行は別の設定です。
 
-【配布範囲と検証状況】
-iPhoneアプリはこのZIPに含まれず、別途導入が必要です。
-Windows実機・受領者本人のQB/Notionでの動作確認は未実施です。
-開発環境の検証結果と実機検証は別です。docs\Validation-ja.txt の検証記録を参照してください。
+【更新とデータの保管】
+既存の設置先がある場合、install.cmd は上書きせず停止します。
+更新のために設置フォルダーや data を削除しないでください。
+設定後のフォルダーには接続キーと履歴が含まれます。他人へ渡すときは元の配布ZIPを使ってください。
+Notion接続キーは操作画面へ入力し、Claudeやメールでは送らないでください。
 
-【自分の履歴と接続キーを守る】
-配布するのは元のZIPだけです。設定後の設置フォルダーやdataを他人へ渡さないでください。
-Notion接続キーは本人が操作画面に入力します。Claudeや配布者に送る必要はありません。
-QBの問題文、選択肢本文、解説、画像は取り扱いません。
-既にQBStudyFriendを導入済みの場合、install.cmdは上書きせず停止します。
-既存の設置フォルダーやdataを削除せず、更新手順を確認してください。
-
-停止：stop.cmd（停止要求後、黒いウィンドウの終了と操作画面の停止・未接続まで確認）
-ログイン時の自動起動：autostart-on.cmd（本人がYESと入力した場合だけ有効化）
-自動起動の解除：autostart-off.cmd
-※ログイン時の自動起動は、毎朝のQBセット作成とは別の機能です。
+iPhone / iPadで記録するにはSafari拡張を別途導入します。
+Windows実機とClaudeからの操作は未検証です。検証の範囲は docs\Validation-ja.txt を参照してください。

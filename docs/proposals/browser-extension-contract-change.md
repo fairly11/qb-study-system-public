@@ -1,119 +1,72 @@
-# Browser extension V1 compatibility decision and collector boundary
+# Chrome拡張の取得データとV1契約の互換性
 
-- Status: Resolved — no V1 contract change required
-- Date: 2026-08-26
-- Scope: Browser extension capture and collector HTTP boundary
+- 状態: 解決済み。`AttemptEventV1` の変更は不要
+- 決定日: 2026-08-26
 
-## Conclusion
+## 判断
 
-The reviewed QB DOM contract can produce the existing `AttemptEventV1` without
-changing `packages/contracts`, its V1 public TypeScript type, or its generated
-JSON Schema. The browser extension must omit facts that V1 does not model and
-must emit nothing when required V1 evidence is absent. No contract-change
-proposal is being advanced by this document.
+画面から確認できる問題番号、選択番号、正誤、解答時刻は、既存の `AttemptEventV1` で表現できる。
+型定義やJSON Schemaに項目を追加する必要はない。
+必要な情報が揃わない画面では、推測で値を補わず記録を作らない。
 
-`AttemptEventV1` requires a non-empty, unique array of explicit one-based
-`selected_option_indices`. The user authorized reading those indices when they
-are unambiguous on screen. That authorization satisfies the existing V1
-requirement; it does not add a field or change its meaning.
+この検討時にはページごとの開始操作を前提とした。
+その開始方式は [ADR-0017](../ADR/0017-automatic-qb-capture.md) の自動記録へ置き換えられている。
+V1のデータ検証と保存する情報の制限は継続する。
 
-The task also identifies possible values that have no corresponding V1 field:
+## 選択番号と正誤
 
-- QB question ID
-- session ID
-- source device
-- Again, Hard, Good, or Easy self-rating
+`selected_option_indices` は、1始まりの選択番号を重複なく含む空でない配列とする。
+アダプターは、対応する画面構造で四つまたは五つの選択肢の並びを一意に判定できる場合だけ、DOM上の順序を番号へ対応付ける。
+選択肢の本文は読まない。
 
-`AttemptEventV1` rejects additional properties. Existing fields such as
-`question_group_id` and `provenance.source_record_id` must not be repurposed to
-carry values with different meanings. The V1 browser payload omits all four
-values.
+正答の位置は、選択した位置との比較に一時的に使う。
+正答番号そのものを、イベント、メッセージ、送信待ち、診断、ログへ含めない。
+問題本文を含まない合成テストでは正誤マーカーの配置を再現するが、実問題の正答データを保存するものではない。
 
-## Consent and evidence boundary
+## 記録候補の条件
 
-The production content script is statically limited to the reviewed QB quiz
-target, but its capture path remains inactive until the user explicitly starts
-recording for the current document. Consent is document-scoped and ephemeral.
-Closing the popup is no action. Declining suppresses automatic prompting for
-that document but does not prevent a later manual start. Same-document `/quiz`
-updates retain that decision and capture state; a verified new document requires
-a new decision.
+- 送信元が `https://qb.medilink-study.com` の `/quiz` で、最上位フレームの正当な記録セッションである。
+- 正規化できる問題番号が一つに定まる。
+- 選択肢の並びと選択済み番号を一意に判定できる。
+- 結果表示の構造が対応している。
+- 未解答から結果表示への遷移、または再表示と区別できる新たな解答操作を確認できる。
 
-`chrome.action.openPopup()` is used only to present the choice and requires
-Chrome 127 or later for a generally installed extension. If that API is absent
-or its call rejects, a tab-specific badge and title request manual attention;
-failure never implies consent. A stale or unreachable document instead has its
-ephemeral session removed and capture remains off.
+最初から表示されている結果を、新しい解答として扱わない。
+選択肢のない結果表示はアダプター内で `resolved_without_selection` とし、`correct`、`incorrect`、`unknown` のいずれにも変換しない。
+別の問題へ進んだ場合は同じ文書内でも取得を続け、問題数の上限は設けない。
 
-The service worker reconciles both `loading` and `complete` tab updates against
-the exact stored document rather than treating an update notification as proof
-of replacement. An active new `/quiz` document receives one automatic popup;
-same-document updates retain the already-attempted popup state.
+## V1に独立した項目がない情報
 
-After consent, the extension may create `AttemptEventV1` only when all of the
-following are observed through the reviewed production adapter:
+QB内部の問題ID、演習セッションID、端末情報、Again・Hard・Good・Easyの自己評価を、V1の追加項目として送信しない。
+未定義の項目は `additionalProperties: false` で拒否する。
+既存の項目を異なる意味へ転用してはならない。
 
-1. the exact runtime origin is `https://qb.medilink-study.com` and pathname is
-   `/quiz` in the top frame;
-2. one unambiguous normalized question key is present;
-3. exactly four or five options, matching the reviewed live structures,
-   establish an unambiguous DOM-order to one-based-index mapping;
-4. at least one explicit, unique selected-option index is present;
-5. result and marker structure are supported; and
-6. the same question transitions from pending to resolved while capture is
-   active.
+取得元のレコードを識別する `provenance.source_record_id` の使い方と、学習目的を分離して持つ `StudyContextV1` は、それぞれ後続の設計に従う。
+iPhone / iPadの記録元識別は [ADR-0019](../ADR/0019-ios-safari-recording.md)、学習区分はADR-0017を参照する。
 
-After a terminal result, a different supported question key starts the next
-pending-to-resolved cycle in the same document. This continuation has no fixed
-question-count limit.
+## 収集サービスとの通信
 
-An initially rendered result is accepted only as the capture baseline and
-produces no event. An unknown selector layout, ambiguous option mapping, stale
-or unconsented sender, or missing required value is rejected without an event.
-A resolved state with no selected option is represented only inside the adapter
-as `resolved_without_selection`; it is not converted to
-`correct`, `incorrect`, or `unknown` and is not persisted as history.
+当初の解答送信先は、同じ端末の `http://127.0.0.1:8765/v1/attempt-events` とした。
+現行の学習区分付き送信では、解答と `StudyContextV1` を包む `/v2/attempt-events` を使用する。
+ポートは変更できるが、待ち受けアドレスと各データ形式のパスは固定する。
+cookie、認証ヘッダー、リダイレクト、クエリ、フラグメントを使用しない。
 
-The adapter derives correct-option indices transiently to compare the correct
-set with the selected set. Correct-option indices are not part of
-`AttemptEventV1`; they must not leave the local adapter computation or appear in
-messages, payloads, outbox state, diagnostics, or logs. Content-free synthetic
-fixtures may reproduce marker placement for adapter tests, but they do not store
-real-site answers or a serialized correct-index field.
+拡張内の送信待ちを取り除くのは、2xx応答のJSONが次のいずれかと完全一致した場合だけとする。
+`event_id` は送信したものと同じ値でなければならない。
 
-## Provisional collector HTTP profile
+```json
+{"event_id": "<same UUID>", "status": "inserted"}
+```
 
-The history-collector package does not publish an accepted authenticated
-external HTTP contract. The extension and the first-party local collector use
-this local profile without changing V1:
+```json
+{"event_id": "<same UUID>", "status": "duplicate"}
+```
 
-- `POST` one strict `AttemptEventV1` JSON object to a configured loopback
-  endpoint;
-- default endpoint: `http://127.0.0.1:8765/v1/attempt-events`;
-- the loopback port is configurable, but the path is fixed to
-  `/v1/attempt-events`;
-- no credentials, cookies, authorization headers, redirects, query, or URL
-  fragment;
-- acknowledge deletion from the outbox only for a 2xx JSON response whose
-  exact shape is `{ "event_id": "<same UUID>", "status": "inserted" }` or
-  `{ "event_id": "<same UUID>", "status": "duplicate" }`;
-- retry network failures, HTTP 429, and 5xx responses; and
-- retain but block automatic retry for other responses or malformed
-  acknowledgements.
+通信断、HTTP 429、5xxは再試行する。
+それ以外の応答や不正な保存確認では、記録を保持して自動再試行を止める。
+実装と端末内通信の制約は [ADR-0013](../ADR/0013-local-loopback-history-collector.md) を参照する。
 
-This collector profile is extension-local and does not change V1. It has no
-collector authentication: a different local process that owns the configured
-port could receive an event and forge an acknowledgement. Authentication and
-endpoint ownership require a separate accepted integration decision before
-external production distribution.
+## 契約を変更する場合
 
-ADR-0013 accepts a local-only server implementation of this profile. It does
-not promote the profile to a public or externally distributed contract.
-
-## Conditions for future V2 work
-
-If product requirements later require the QB question ID, session, source
-device, self-rating, or correct-option indices outside the adapter, define their
-semantics, privacy classification, idempotency impact, and validation constraints
-in a new contract version. Do not modify the published V1 schema in place and do
-not use this resolved document as authorization for those fields.
+新しい情報を保存する必要が生じたら、意味、機密性、重複判定への影響、検証条件を定義する。
+既存の利用側と互換性を保てない場合は、新しい契約バージョンと移行手順を追加し、V1を上書きしない。
